@@ -1,0 +1,9 @@
+*.zip
+*.jpeg
+*.jpg
+*.png
+*.svg
+.Rhistory
+.ipynb*
+*.html
+.claude
