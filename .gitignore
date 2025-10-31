@@ -7,3 +7,4 @@
 .ipynb*
 *.html
 .claude
+output/stripSegmentation/*
