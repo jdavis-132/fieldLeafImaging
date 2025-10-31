@@ -1,0 +1,13 @@
+*.zip
+*.jpeg
+*.jpg
+*.png
+*.svg
+.Rhistory
+.ipynb*
+*.html
+.claude
+output/stripSegmentation/*
+.DS_Store
+models/*
+disease_autoencoder/models/*
