@@ -8,3 +8,5 @@
 *.html
 .claude
 output/stripSegmentation/*
+models/
+*.pt
