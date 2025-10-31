@@ -12,7 +12,7 @@ class Config:
 
     def __init__(self):
         # Paths
-        self.base_dir = Path('/home/schnable/Documents/fieldLeafImaging')
+        self.base_dir = Path('/Users/jensinadavis/Documents/fieldLeafImaging')
         self.data_dir = self.base_dir / 'data' / 'ne2025'  # Raw images directory
         self.output_dir = self.base_dir / 'output'  # For masks
         self.csv_path = self.data_dir / 'SbDiv_ne2025_fieldindex.csv'

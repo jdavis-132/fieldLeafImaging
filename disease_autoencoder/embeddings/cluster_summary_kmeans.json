@@ -1,0 +1,17 @@
+{
+  "method": "kmeans",
+  "n_clusters": 5,
+  "parameters": {
+    "method": "kmeans",
+    "n_clusters": 5,
+    "eps": 0.5,
+    "min_samples": 5
+  },
+  "cluster_sizes": {
+    "0": 1182,
+    "1": 1550,
+    "2": 11,
+    "3": 3131,
+    "4": 76
+  }
+}
