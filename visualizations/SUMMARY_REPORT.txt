@@ -1,0 +1,96 @@
+================================================================================
+AUTOENCODER PIPELINE SUMMARY REPORT
+================================================================================
+
+Dataset Information
+--------------------------------------------------------------------------------
+Total usable images: 5950
+  - With normalized image: ✓
+  - With both masks (strip_0000 + strip_0001): ✓
+  - With genotype metadata: ✓
+
+Data Splits
+--------------------------------------------------------------------------------
+TRAIN:
+  Images:     4316 (72.5%)
+  Genotypes:   677
+  Avg images/genotype: 6.38
+
+VAL:
+  Images:      814 (13.7%)
+  Genotypes:   141
+  Avg images/genotype: 5.77
+
+TEST:
+  Images:      820 (13.8%)
+  Genotypes:   143
+  Avg images/genotype: 5.73
+
+Genotype Split Strategy
+--------------------------------------------------------------------------------
+CRITICAL: All images with the same genotype are in the same split
+This prevents data leakage where the model sees the same genotype
+in both training and testing.
+
+Total genotypes: 961
+  Train genotypes: 677
+  Val genotypes:   141
+  Test genotypes:  143
+
+Model Configuration
+--------------------------------------------------------------------------------
+Input image size:    512 × 384
+Embedding dimension: 256
+Batch size:          16
+Learning rate:       0.0001
+Max epochs:          100
+Early stopping:      15 epochs
+Random seed:         42
+Device:              cuda
+
+Masking Process
+--------------------------------------------------------------------------------
+1. Load normalized RGB image
+2. Load mask 1 (strip_0000_mask.png)
+3. Load mask 2 (strip_0001_mask.png)
+4. Combine masks with logical OR
+5. Set pixels OUTSIDE combined mask to [0, 0, 0] (black)
+6. Keep pixels INSIDE combined mask at original values
+7. Resize to target size and normalize
+
+Output Files
+--------------------------------------------------------------------------------
+Models:         /home/schnable/Documents/fieldLeafImaging/models/
+  - best_model.pth (best validation loss)
+  - checkpoint_epoch_*.pth (per-epoch checkpoints)
+
+Embeddings:     /home/schnable/Documents/fieldLeafImaging/embeddings/
+  - embeddings.csv (with metadata)
+  - embeddings.npz (numpy arrays)
+  - embeddings_metadata.json
+
+Visualizations: /home/schnable/Documents/fieldLeafImaging/visualizations/
+  - training_curves.png
+  - reconstructions_*.png
+  - masking_process_examples.png
+  - embeddings_umap.png / embeddings_pca.png
+
+Logs:           /home/schnable/Documents/fieldLeafImaging/logs/
+  - image_splits.json
+  - genotype_splits.json
+  - training_log.csv
+  - dataset_summary.txt
+
+Next Steps
+--------------------------------------------------------------------------------
+1. Review visualizations in {visualizations}/
+2. Check training curves for overfitting
+3. Examine reconstructions for quality
+4. Analyze embeddings for genotype clustering
+5. Use embeddings for downstream tasks:
+   - Genotype classification
+   - Phenotype prediction
+   - Clustering analysis
+   - Dimensionality reduction visualization
+
+================================================================================
