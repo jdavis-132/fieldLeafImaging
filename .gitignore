@@ -12,3 +12,4 @@ output/stripSegmentation/*
 *.pt
 .DS_Store
 *__pycache/*
+*embeddings/*
