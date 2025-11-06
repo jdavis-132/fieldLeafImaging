@@ -12,3 +12,4 @@ models/
 *.pt
 .DS_Store
 disease_autoencoder/models/*
+*__pycache/*
