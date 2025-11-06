@@ -9,7 +9,12 @@
 .claude
 output/stripSegmentation/*
 */models/
+**/models/
+models/
 *.pt
+*.pth
 .DS_Store
 *__pycache/*
 *embeddings/*
+**/__pycache__/
+**/embeddings/
