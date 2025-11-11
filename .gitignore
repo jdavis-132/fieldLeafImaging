@@ -14,7 +14,19 @@ models/
 *.pt
 *.pth
 .DS_Store
-*__pycache/*
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Embeddings
 *embeddings/*
-**/__pycache__/
 **/embeddings/
