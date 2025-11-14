@@ -1,8 +1,9 @@
 library(tidyverse)
-devtools::source_url('https://github.com/jdavis-132/hips/raw/refs/heads/master/src/Functions.R')
-source('../widiv-transcriptome/src/Functions.R')
+source('src/R/Functions.R')
 embeddings_128 <- read_csv('src/autoencoder_no_weighting/embeddings/embeddings.csv')
 lv_cols <- colnames(embeddings)[3:258]
+
+embeddings_vae <- read
 
 # plot histograms 
 for(lv in lv_cols)
@@ -41,5 +42,16 @@ for(lv in lv_cols)
   printHistogram(embeddings_sam, lv, title = lv)
 }
 
-sam_pcs <- getPCScores(embeddings_sam, )
+sam_pcs <- getPCScores(embeddings_sam, cols = contains('embedding'))
+pcs <- colnames(sam_pcs)[2:20]
+for(lv in pcs)
+{
+  printHistogram(sam_pcs, lv, title = lv)
+}
 
+embeddings_dino <- read_csv('dinov2_features.csv')
+lv_cols <- colnames(embeddings_dino)[2:ncol(embeddings_dino)]
+for(lv in lv_cols)
+{
+  printHistogram(embeddings_dino, lv, title = lv)
+}

@@ -30,3 +30,7 @@ pip-delete-this-directory.txt
 # Embeddings
 *embeddings/*
 **/embeddings/
+**__pycache__/
+src/vae/logs
+src/disease_autoencoder/__pycache__/*
+src/disease_autoencoder_cropped/__pycache__/*
