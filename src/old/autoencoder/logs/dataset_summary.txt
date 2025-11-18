@@ -1,0 +1,25 @@
+Dataset Summary
+============================================================
+
+Total images: 5950
+
+TRAIN:
+  Images: 4316 (72.5%)
+  Genotypes: 677
+  Avg images per genotype: 6.38
+
+VAL:
+  Images: 814 (13.7%)
+  Genotypes: 141
+  Avg images per genotype: 5.77
+
+TEST:
+  Images: 820 (13.8%)
+  Genotypes: 143
+  Avg images per genotype: 5.73
+
+
+Genotype assignment ensures no data leakage:
+  - All images from the same genotype are in the same split
+  - Small genotypes (<3 images) are assigned to training
+  - Random seed: 42
