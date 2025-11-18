@@ -1,0 +1,30 @@
+{
+  "checkpoint": {
+    "epoch": 1,
+    "best_val_loss": 0.22922688985572143
+  },
+  "latent_stats": {
+    "mu_mean": 4.374757289886475,
+    "mu_std": 71.71570587158203,
+    "log_var_mean": -9.556488037109375,
+    "log_var_std": 2.5967483520507812,
+    "z_mean": 4.411975860595703,
+    "z_std": 73.7130355834961
+  },
+  "posterior_collapse": {
+    "total_dimensions": 128,
+    "inactive_dimensions": 127,
+    "low_variance_dimensions": 127,
+    "active_ratio": 0.0078125,
+    "mean_kl_per_dim": 696.6174926757812,
+    "total_kl": 89167.0390625,
+    "min_log_var": -10.0,
+    "max_log_var": -1.777732253074646
+  },
+  "reconstruction": {
+    "mse_mean": 0.15610001981258392,
+    "mse_std": 0.011895930598882703,
+    "mse_min": 0.13660715520381927,
+    "mse_max": 0.177639439702034
+  }
+}
