@@ -1,0 +1,24 @@
+{
+  "image_size": 224,
+  "latent_dim": 128,
+  "batch_size": 16,
+  "num_epochs": 200,
+  "learning_rate": 0.0001,
+  "weight_decay": 1e-05,
+  "train_ratio": 0.7,
+  "val_ratio": 0.15,
+  "test_ratio": 0.15,
+  "random_seed": 42,
+  "unet_features": [
+    64,
+    128,
+    256,
+    512
+  ],
+  "use_attention": true,
+  "reconstruction_loss_type": "mse",
+  "kl_weight": 1.0,
+  "kl_annealing": true,
+  "kl_annealing_epochs": 50,
+  "model_type": "vae"
+}
