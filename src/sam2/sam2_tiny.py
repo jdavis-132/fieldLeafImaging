@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sam2.build_sam import build_sam2
 from sam2.sam2_image_predictor import SAM2ImagePredictor
 import os
+import pkg_resources
 
 class SAM2TinyPredictor:
     def __init__(self, model_path="models/sam2.1_hiera_tiny.pt", device="auto"):
@@ -39,7 +40,9 @@ class SAM2TinyPredictor:
         # Build the model
         print(f"Loading SAM 2.1 Tiny model on {self.device.upper()}...")
         try:
-            self.sam2_model = build_sam2("configs/sam2.1/sam2.1_hiera_t.yaml", model_path, device=self.device)
+            # Use relative config name - build_sam2 will find it in the package
+            config_name = "configs/sam2.1/sam2.1_hiera_t.yaml"
+            self.sam2_model = build_sam2(config_name, model_path, device=self.device)
             # Explicitly move model to device
             self.sam2_model = self.sam2_model.to(self.device)
             self.predictor = SAM2ImagePredictor(self.sam2_model)
@@ -56,7 +59,8 @@ class SAM2TinyPredictor:
                 print(f"⚠️  CUDA error: {e}")
                 print("🔄 Falling back to CPU...")
                 self.device = "cpu"
-                self.sam2_model = build_sam2("configs/sam2.1/sam2.1_hiera_t.yaml", model_path, device=self.device)
+                config_name = "configs/sam2.1/sam2.1_hiera_t.yaml"
+                self.sam2_model = build_sam2(config_name, model_path, device=self.device)
                 self.sam2_model = self.sam2_model.to(self.device)
                 self.predictor = SAM2ImagePredictor(self.sam2_model)
                 print("✅ Model loaded successfully on CPU!")
