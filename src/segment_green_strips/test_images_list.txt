@@ -1,0 +1,10 @@
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device3/2749_LeafPhotoA_2025-09-09 11_20_58.643-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device3/2752_LeafPhotoA_2025-09-09 16_37_44.997-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device2/2115_LeafPhotoA_2025-09-08 11_16_57.411-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device2/2102_LeafPhotoA_2025-09-08 10_55_37.852-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device8/6026_LeafPhotoA_2025-09-09 16_35_01.025-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device5/2012_LeafPhotoA_2025-09-08 10_45_43.023-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device2/5027_LeafPhotoA_2025-09-09 16_50_06.776-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device2/1102_LeafPhotoA_2025-09-08 10_51_28.648-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device4/1872_LeafPhotoA_2025-09-09 13_27_10.389-05_00.jpg
+/home/schnable/Documents/fieldLeafImaging/data/ne2025/device2/2144_LeafPhotoA_2025-09-08 12_08_59.362-05_00.jpg
