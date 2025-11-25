@@ -2,7 +2,6 @@
 Batch leaf segmentation using SAM3 model
 """
 import os
-os.chdir('/home/schnable/Documents/fieldLeafImaging/')
 import torch
 from transformers import Sam3Processor, Sam3Model
 from PIL import Image

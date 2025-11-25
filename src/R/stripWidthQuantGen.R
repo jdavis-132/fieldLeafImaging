@@ -62,37 +62,40 @@ vp_leaf.plot <- ggplot(vp_leaf_nonresidual, aes(label, pctVar, fill = grp)) +
         axis.line.y.left = element_line(color = 'black'))
 vp_leaf.plot
 
-genotype_ids <- read_tsv('data/sorgRNAseq_811.fam', col_names = FALSE) #%>% 
-  select(X2) %>% 
-  rename(vcfName = X2) %>% 
-  mutate(phenoName = str_replace(vcfName, 'PI', 'PI ')) %>% 
-  mutate(phenoName = case_when(
-                               # vcfName=='ElMota' ~ 'PI 656035',
-                               vcfName=='BTx378' ~ 'PI 655991', 
-                               # vcfName=='RTx2917' ~ 'PI 629040',
-                               # vcfName=='RTX2737' ~ 'PI 655978', 
-                               # vcfName=='SanChiSan' ~ 'PI 542718',
-                               # vcfName=='PI655993' ~ 'BTx399', 
-                               vcfName=='RTx430' ~ 'PI 655996', 
-                               # vcfName=='BTx3197' ~ 'PI 655992', 
-                               .default = phenoName))
-leaf_widths_gwas <- ungroup(leaf_widths) %>% 
-  left_join(genotype_ids, join_by(genotype==phenoName), relationship = 'many-to-one') %>% 
-  filter(!is.na(vcfName)) %>% 
-  select(vcfName, all_of(phenos)) %>% 
-  rename(genotype = vcfName)
-
-blues <- tibble()
-for (p in phenos)
-{
-  model <- lm()
-}
-
-write_csv(leaf_widths_gwas, 'leaf_widths_gwasphenos.csv')
-write_tsv(as.data.frame(unique(leaf_widths_gwas$genotype)), 'genotypes_prelimgwas.txt', col_names = FALSE)
+# genotype_ids <- read_tsv('data/sorgRNAseq_811.fam', col_names = FALSE) #%>% 
+#   select(X2) %>% 
+#   rename(vcfName = X2) %>% 
+#   mutate(phenoName = str_replace(vcfName, 'PI', 'PI ')) %>% 
+#   mutate(phenoName = case_when(
+#                                # vcfName=='ElMota' ~ 'PI 656035',
+#                                vcfName=='BTx378' ~ 'PI 655991', 
+#                                # vcfName=='RTx2917' ~ 'PI 629040',
+#                                # vcfName=='RTX2737' ~ 'PI 655978', 
+#                                # vcfName=='SanChiSan' ~ 'PI 542718',
+#                                # vcfName=='PI655993' ~ 'BTx399', 
+#                                vcfName=='RTx430' ~ 'PI 655996', 
+#                                # vcfName=='BTx3197' ~ 'PI 655992', 
+#                                .default = phenoName))
+# leaf_widths_gwas <- ungroup(leaf_widths) %>% 
+#   left_join(genotype_ids, join_by(genotype==phenoName), relationship = 'many-to-one') %>% 
+#   filter(!is.na(vcfName)) %>% 
+#   select(vcfName, all_of(phenos)) %>% 
+#   rename(genotype = vcfName)
+# 
+# blues <- tibble()
+# for (p in phenos)
+# {
+#   model <- lm()
+# }
+# 
+# write_csv(leaf_widths_gwas, 'leaf_widths_gwasphenos.csv')
+# write_tsv(as.data.frame(unique(leaf_widths_gwas$genotype)), 'genotypes_prelimgwas.txt', col_names = FALSE)
 
 # field data: how does it compare?
-sap2021 <- read_excel('SAPMerged2021_v2.3.xlsx')
+sap2021 <- read_excel('data/manual/2021 Sorghum Data v8.xlsx') #%>% 
+  pivot_longer(contains('Leaf Width'), 
+               names_to = 'measurement_number', 
+               values_to = 'leafWidth')
 sap_vp <- partitionVariance3(sap2021, 'LeafWidth', 'Leaf Width \n(Manual)', '~ (1|Row) + (1|Column) + (1|PINumber)') %>% 
   filter(grp!='Residual') %>% 
   mutate(grp = factor(grp, levels = c('Row', 'Column', 'PINumber'), labels = c('Row', 'Range', 'Genotype')))
