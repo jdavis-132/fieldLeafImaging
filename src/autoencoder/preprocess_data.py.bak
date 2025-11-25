@@ -2,6 +2,7 @@
 Preprocess dataset for leaf autoencoder.
 """
 import os
+os.chdir('/home/schnable/Documents/fieldLeafImaging/')
 import argparse
 import glob
 import cv2
@@ -11,15 +12,10 @@ import matplotlib.image as mpimg
 import torch
 import sys
 import csv
-from pathlib import Path
-
-# Add project root to path
-project_root = Path(__file__).parent.parent.parent
-sys.path.insert(0, str(project_root))
-
-import src.autoencoder.segment_leaf as segment_leaf
-# from src.sam3.segment_leaves import LeafSegmenter
-# from src.sam3.test_sam3 import combine_masks
+sys.path.insert(0, '/home/schnable/Documents/fieldLeafImaging')
+import src.segment_leaf
+from src.sam3.segment_leaves import LeafSegmenter
+from src.sam3.test_sam3 import combine_masks
 from sklearn.decomposition import PCA
 
 
@@ -199,10 +195,11 @@ def main():
     os.makedirs(crop_dir, exist_ok=True)
     os.makedirs(cropped_mask_dir, exist_ok=True)
     os.makedirs(cropped_normalized_dir, exist_ok=True)
-
-    # Use CV2 segmentation (SAM3 disabled)
-    print('Using CV2 segmentation')
-
+    
+    # initialize SAM3
+    segmenter = LeafSegmenter(model_path='src/sam3')
+    print('Initialized SAM3')
+    
     # get list of images to process
     raw_images = glob.glob(input_path + '/*' + args.pattern)
     print('Found ' + str(len(raw_images)) + ' images')
@@ -213,27 +210,25 @@ def main():
     for idx, image in enumerate(raw_images):
         print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
 
-        # Use CV2 segmentation
-        print(f"  Segmenting with CV2...")
-        mask = segment_leaf.process_single(image)
+        # save mask to mask dir
+        sam3_results = segmenter.segment_image(image)
+		masks = sam3_results['masks']
 
-        if mask is None or mask.sum() == 0:
-            print(f"  Segmentation failed, skipping...")
-            no_detection_images.append(image)
-            continue
+        # Skip if no objects detected and save to list
+        if len(sam3_results['masks']) == 0:
+            print(f"  No objects detected, trying with CV2...")
+            masks = [segment_leaf.process_single(image)]
 
         basename = os.path.splitext(os.path.basename(image))[0]
         mask_path = mask_dir + '/' + basename + '.png'
-
-        # Save mask (multiply by 255 to get proper white pixels)
-        cv2.imwrite(mask_path, mask * 255)
+        combined_mask = combine_masks(masks, save_path=mask_path)
 
         # Check if mask was saved successfully
         if not os.path.exists(mask_path):
             print(f"  Failed to save mask, skipping...")
             continue
 
-        print(f"  Mask saved")
+        print(f"  Found {len(masks)} objects, mask saved")
 
         # align and crop
         try:
@@ -257,10 +252,9 @@ def main():
         normalized_crops = glob.glob(cropped_normalized_dir + '/*')
         os.makedirs(cropped_normalized_masked_dir, exist_ok=True)
         
-        for image_path in normalized_crops:
+        for image in normalized_crops: 
             # multiply by mask and save
-            basename = os.path.basename(image_path)
-            image = cv2.imread(image_path)
+            basename = os.path.basename(image)
             mask = cv2.imread(cropped_mask_dir + '/' + basename) / 255.0
             masked_image = image * mask
             cv2.imwrite(cropped_normalized_masked_dir + '/' + basename, masked_image)
