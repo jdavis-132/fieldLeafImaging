@@ -4,7 +4,7 @@
 data:
   # Base directory for processed images
   # Images should be in: {base_dir}/{environment}/{subdir}/cropped_{colorspace}_normalized[_masked]/
-  base_dir: "data"
+  base_dir: "data/processed"
 
   # Environment to use (e.g., 'test_output', 'aamu2025', 'fvsu2025', 'ne2025')
   environment: "ne2025"
@@ -14,7 +14,7 @@ data:
 
   # Field index CSV file path (should contain plotNumber to genotype mapping)
   # CSV must have columns: plotNumber, genotype (and any other field metadata)
-  field_index_csv: "data/processed/ne2025/field_index.csv"
+  field_index_csv: "data/processed/ne2025/SbDiv_ne2025_fieldindex.csv"
 
   # Optional: Metadata CSV file path (additional metadata beyond genotype)
   # CSV should have columns: image_name and any other metadata
@@ -56,7 +56,7 @@ split:
 # DataLoader parameters
 dataloader:
   # Batch size for training
-  batch_size: 32
+  batch_size: 64
 
   # Number of worker processes for data loading
   num_workers: 4
@@ -154,7 +154,7 @@ training:
   validation_frequency: 1  # Validate every N epochs
 
   # Checkpointing
-  save_frequency: 10  # Save checkpoint every N epochs
+  save_frequency: 20  # Save checkpoint every N epochs
   save_best_only: false  # If true, only save best model
 
   # Reproducibility
