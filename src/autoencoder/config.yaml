@@ -100,12 +100,65 @@ loss:
 
 # Model configuration
 model:
+  # Input image size [height, width]
+  # Must match target_size in image configuration
+  input_size: [256, 256]
+
+  # Number of input channels (automatically set from image.colorspace)
+  # RGB/LAB/HSV = 3 channels
+  input_channels: 3
+
+  # Bottleneck dimension (latent vector size)
+  # Typical values: 128, 256, 512
+  bottleneck_dim: 128
+
+  # Attention mechanism configuration
+  use_attention: false
+  attention_type: "both"  # Options: "channel", "spatial", "both"
+
   # Whether the model is a VAE (variational autoencoder)
   # If true, model must output mu and logvar for latent distribution
   is_vae: false
 
-  # Latent dimension (for VAE)
-  latent_dim: 128
+  # Model architecture type (for future extensions)
+  architecture: "pdse_lite"  # PDSE-Lite CAE architecture
+
+# Training configuration
+training:
+  # Learning rate
+  learning_rate: 0.001
+
+  # Batch size (adjust based on available GPU memory)
+  batch_size: 32
+
+  # Number of epochs
+  num_epochs: 500
+
+  # Early stopping patience (stop if no improvement for N epochs)
+  early_stopping_patience: 20
+
+  # Optimizer settings
+  optimizer: "adam"  # Options: "adam", "adamw", "sgd"
+  weight_decay: 0.0
+  momentum: 0.9  # For SGD optimizer
+
+  # Learning rate scheduler (optional)
+  use_scheduler: true
+  scheduler_type: "plateau"  # Options: "plateau", "step", "cosine"
+  scheduler_patience: 10  # For ReduceLROnPlateau
+  scheduler_factor: 0.5  # LR reduction factor
+  scheduler_step_size: 30  # For StepLR
+  scheduler_gamma: 0.1  # For StepLR
+
+  # Validation
+  validation_frequency: 1  # Validate every N epochs
+
+  # Checkpointing
+  save_frequency: 10  # Save checkpoint every N epochs
+  save_best_only: false  # If true, only save best model
+
+  # Reproducibility
+  random_seed: 42
 
 # Additional settings
 settings:
