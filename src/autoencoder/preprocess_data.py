@@ -18,8 +18,8 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import src.autoencoder.segment_leaf as segment_leaf
-# from src.sam3.segment_leaves import LeafSegmenter
-# from src.sam3.test_sam3 import combine_masks
+from src.sam3.segment_leaves import LeafSegmenter
+from src.sam3.test_sam3 import combine_masks
 from sklearn.decomposition import PCA
 
 
@@ -201,7 +201,10 @@ def main():
     os.makedirs(cropped_normalized_dir, exist_ok=True)
 
     # Use CV2 segmentation (SAM3 disabled)
-    print('Using CV2 segmentation')
+    # print('Using CV2 segmentation')
+    # initialize SAM3
+    segmenter = LeafSegmenter(model_path='src/sam3')
+    print('Initialized SAM3')
 
     # get list of images to process
     raw_images = glob.glob(input_path + '/*' + args.pattern)
@@ -212,10 +215,17 @@ def main():
 
     for idx, image in enumerate(raw_images):
         print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
+        sam3_results = segmenter.segment_image(image)
+        masks = sam3_results['masks']
 
-        # Use CV2 segmentation
-        print(f"  Segmenting with CV2...")
-        mask = segment_leaf.process_single(image)
+        if len(masks) == 0:
+            # Use CV2 segmentation
+            print(f"  Segmenting with CV2...")
+            mask = segment_leaf.process_single(image)
+        else:
+            # Combine SAM3 masks
+            print(f"  Found {len(masks)} SAM3 masks, combining...")
+            mask = combine_masks(masks)
 
         if mask is None or mask.sum() == 0:
             print(f"  Segmentation failed, skipping...")
