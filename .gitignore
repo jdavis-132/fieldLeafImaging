@@ -13,6 +13,7 @@ output/stripSegmentation/*
 models/
 *.pt
 *.pth
+*.safetensors
 .DS_Store
 # Python
 __pycache__/
