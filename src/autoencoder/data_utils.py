@@ -39,7 +39,8 @@ def get_image_directory(
     environment: str,
     subdir: str,
     colorspace: str,
-    use_masked: bool
+    use_masked: bool,
+    normalize_colorspace: bool = True
 ) -> List[str]:
     """
     Construct path(s) to processed image directory/directories.
@@ -52,16 +53,22 @@ def get_image_directory(
         subdir: Subdirectory within environment (can be empty or glob pattern like 'device*')
         colorspace: Colorspace name (e.g., 'RGB')
         use_masked: Whether to use masked images
+        normalize_colorspace: Whether images are color-normalized
 
     Returns:
         List of paths to image directories (multiple if subdir is a glob pattern)
     """
     from glob import glob
 
-    # Build directory name
-    dir_name = f"cropped_{colorspace}_normalized"
-    if use_masked:
-        dir_name += "_masked"
+    # Build directory name based on normalize_colorspace
+    if normalize_colorspace:
+        # Use normalized directories: cropped_{colorspace}_normalized[_masked]
+        dir_name = f"cropped_{colorspace}_normalized"
+        if use_masked:
+            dir_name += "_masked"
+    else:
+        # Use raw cropped directory (masking will be applied in dataset if use_masked=True)
+        dir_name = "cropped"
 
     # Build full path(s)
     if subdir:
@@ -249,6 +256,7 @@ def create_datasets_from_config(
 
     colorspace = config['image']['colorspace']
     use_masked = config['image']['use_masked']
+    normalize_colorspace = config['image'].get('normalize_colorspace', True)
     target_size = tuple(config['image']['target_size'])
 
     train_ratio = config['split']['train_ratio']
@@ -260,7 +268,7 @@ def create_datasets_from_config(
     verbose = config['settings']['verbose']
 
     # Get image directory/directories and load paths
-    image_dirs = get_image_directory(base_dir, environment, subdir, colorspace, use_masked)
+    image_dirs = get_image_directory(base_dir, environment, subdir, colorspace, use_masked, normalize_colorspace)
 
     if verbose:
         if len(image_dirs) == 1:
@@ -311,6 +319,20 @@ def create_datasets_from_config(
     val_paths = [image_paths[i] for i in val_indices]
     test_paths = [image_paths[i] for i in test_indices]
 
+    # Determine mask directory if needed
+    mask_dir = None
+    if not normalize_colorspace and use_masked:
+        # Build path to masks_cropped directory
+        if subdir:
+            if any(char in subdir for char in ['*', '?', '[', ']']):
+                # For glob patterns, we'll need to construct mask paths per image
+                # Set a flag that will be checked in the dataset
+                mask_dir = "masks_cropped"  # Relative name, will be resolved per image
+            else:
+                mask_dir = os.path.join(base_dir, environment, subdir, "masks_cropped")
+        else:
+            mask_dir = os.path.join(base_dir, environment, "masks_cropped")
+
     train_dataset = LeafImageDataset(
         image_paths=train_paths,
         field_index_df=field_index_df,
@@ -318,6 +340,8 @@ def create_datasets_from_config(
         target_size=target_size,
         colorspace=colorspace,
         use_masked=use_masked,
+        normalize_colorspace=normalize_colorspace,
+        mask_dir=mask_dir,
         cache_images=cache_images
     )
 
@@ -328,6 +352,8 @@ def create_datasets_from_config(
         target_size=target_size,
         colorspace=colorspace,
         use_masked=use_masked,
+        normalize_colorspace=normalize_colorspace,
+        mask_dir=mask_dir,
         cache_images=cache_images
     )
 
@@ -338,6 +364,8 @@ def create_datasets_from_config(
         target_size=target_size,
         colorspace=colorspace,
         use_masked=use_masked,
+        normalize_colorspace=normalize_colorspace,
+        mask_dir=mask_dir,
         cache_images=cache_images
     )
 
