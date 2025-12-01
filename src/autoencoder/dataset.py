@@ -200,14 +200,21 @@ class LeafImageDataset(Dataset):
             # Load and process image
             img_path = self.image_paths[idx]
 
-            # Read image (already normalized to [0, 1] range as PNG)
-            image = cv2.imread(img_path, cv2.IMREAD_COLOR)
+            # Check file extension to determine loading method
+            if img_path.endswith('.npy'):
+                # Load normalized image from NPY file (already in [0, 1] range and RGB)
+                image = np.load(img_path)
+                if image is None or image.size == 0:
+                    raise ValueError(f"Failed to load image: {img_path}")
+            else:
+                # Load from PNG/JPG using OpenCV
+                image = cv2.imread(img_path, cv2.IMREAD_COLOR)
 
-            if image is None:
-                raise ValueError(f"Failed to load image: {img_path}")
+                if image is None:
+                    raise ValueError(f"Failed to load image: {img_path}")
 
-            # Convert BGR to RGB
-            image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+                # Convert BGR to RGB
+                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
 
             # Apply mask if needed (normalize_colorspace=False and use_masked=True)
             if not self.normalize_colorspace and self.use_masked and self.mask_dir is not None:
@@ -259,8 +266,11 @@ class LeafImageDataset(Dataset):
                 )
 
             # Convert to float32 and normalize to [0, 1] if needed
-            # Images should already be normalized, but ensure correct range
-            if image.dtype == np.uint8:
+            if img_path.endswith('.npy'):
+                # NPY files are already normalized float32 [0, 1]
+                image = image.astype(np.float32)
+            elif image.dtype == np.uint8:
+                # PNG/JPG files need normalization
                 image = image.astype(np.float32) / 255.0
             else:
                 image = image.astype(np.float32)

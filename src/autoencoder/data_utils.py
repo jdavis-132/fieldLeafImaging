@@ -96,13 +96,14 @@ def get_image_directory(
     return paths
 
 
-def load_image_paths(image_dirs: List[str], extension: str = '.png') -> List[str]:
+def load_image_paths(image_dirs: List[str], extension: str = '.png', normalize_colorspace: bool = False) -> List[str]:
     """
     Load all image paths from one or more directories.
 
     Args:
         image_dirs: Directory or list of directories containing images
-        extension: Image file extension
+        extension: Image file extension (default: '.png', or '.npy' for normalized images)
+        normalize_colorspace: If True, looks for .npy files; if False, uses extension parameter
 
     Returns:
         List of absolute paths to image files from all directories
@@ -110,6 +111,10 @@ def load_image_paths(image_dirs: List[str], extension: str = '.png') -> List[str
     # Handle both single directory (str) and multiple directories (list)
     if isinstance(image_dirs, str):
         image_dirs = [image_dirs]
+
+    # Override extension if normalized colorspace (NPY files)
+    if normalize_colorspace:
+        extension = '.npy'
 
     all_image_paths = []
 
@@ -124,7 +129,7 @@ def load_image_paths(image_dirs: List[str], extension: str = '.png') -> List[str
         image_paths = [str(p.absolute()) for p in image_paths]
 
         if len(image_paths) == 0:
-            print(f"Warning: No images found in {image_dir_path}")
+            print(f"Warning: No images found in {image_dir_path} with extension {extension}")
         else:
             all_image_paths.extend(image_paths)
 
@@ -278,7 +283,8 @@ def create_datasets_from_config(
             for img_dir in image_dirs:
                 print(f"  - {img_dir}")
 
-    image_paths = load_image_paths(image_dirs)
+    # Pass normalize_colorspace to determine file extension (.npy vs .png)
+    image_paths = load_image_paths(image_dirs, normalize_colorspace=normalize_colorspace)
 
     # Load field index (required)
     if verbose:
