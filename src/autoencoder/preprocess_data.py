@@ -140,30 +140,48 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
         i += 1
         
 def normalize_pixel_values(image_path, out_dir, colorspace='RGB'):
+    """
+    Normalize pixel values to [0, 1] range and save as NPY files.
+
+    Args:
+        image_path: Path to input image
+        out_dir: Output directory for normalized images
+        colorspace: Colorspace to normalize to ('RGB', 'HSV', 'LAB')
+    """
     image = cv2.imread(image_path)
-        
+
     if colorspace=='RGB':
-        normalized_image = image.astype(np.float32) / 255.0
-            
+        # Convert BGR to RGB
+        image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+        normalized_image = image_rgb.astype(np.float32) / 255.0
+
     if colorspace=='HSV':
-        hsv = cv2.cvtColor(image, 'cv2.COLOR_BGR2HSV')
+        hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
         # Split the HSV image into H, S, and V channels
         h, s, v = cv2.split(hsv)
-            
+
         # Normalize the H channel to the range [0, 1]
         # Note: OpenCV uses H in range [0, 179]
         h_normalized = h.astype(np.float32) / 179.0
         # Normalize S and V channels to the range [0, 1]
         s_normalized = s.astype(np.float32) / 255.0
         v_normalized = v.astype(np.float32) / 255.0
-        normalized_image =  cv2.merge([h, s, v])
-            
+        normalized_image = cv2.merge([h_normalized, s_normalized, v_normalized])
+
     if colorspace=='LAB':
-        lab = cv2.cvtColor(image, 'cv2.COLOR_BGR2LAB')
-        normalized_image = lab.astype(np.float32) / 255.0
-            
+        lab = cv2.cvtColor(image, cv2.COLOR_BGR2LAB)
+        # LAB values: L in [0, 100], a and b in [-128, 127]
+        # Normalize to [0, 1] by dividing by max values
+        l_channel, a_channel, b_channel = cv2.split(lab.astype(np.float32))
+        l_normalized = l_channel / 255.0  # OpenCV stores L as [0, 255]
+        a_normalized = a_channel / 255.0
+        b_normalized = b_channel / 255.0
+        normalized_image = cv2.merge([l_normalized, a_normalized, b_normalized])
+
+    # Save as NPY file to preserve float32 [0, 1] values
     basename = os.path.basename(image_path)
-    cv2.imwrite(out_dir + '/' + basename, normalized_image)
+    basename_npy = os.path.splitext(basename)[0] + '.npy'
+    np.save(out_dir + '/' + basename_npy, normalized_image)
         
 def main():
     """
@@ -263,18 +281,32 @@ def main():
     
     print('Normalized pixel values [0, 1] based on theoretical maximums in the ' + args.colorspace + ' colorspace')
     if args.use_mask:
-        # get list of normalized crops
-        normalized_crops = glob.glob(cropped_normalized_dir + '/*')
+        # get list of normalized crops (now .npy files)
+        normalized_crops = glob.glob(cropped_normalized_dir + '/*.npy')
         os.makedirs(cropped_normalized_masked_dir, exist_ok=True)
-        
+
         for image_path in normalized_crops:
             # multiply by mask and save
             basename = os.path.basename(image_path)
-            image = cv2.imread(image_path)
-            mask = cv2.imread(cropped_mask_dir + '/' + basename) / 255.0
-            masked_image = image * mask
-            cv2.imwrite(cropped_normalized_masked_dir + '/' + basename, masked_image)
-            
+            # Load normalized image from NPY file
+            image = np.load(image_path)
+
+            # Load mask (PNG) and normalize to [0, 1]
+            mask_basename = os.path.splitext(basename)[0] + '.png'
+            mask = cv2.imread(cropped_mask_dir + '/' + mask_basename)
+            if mask is None:
+                print(f"Warning: Could not load mask for {basename}, skipping...")
+                continue
+
+            # Convert mask to RGB and normalize to [0, 1]
+            mask_rgb = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+
+            # Apply mask
+            masked_image = image * mask_rgb
+
+            # Save as NPY to preserve float32 [0, 1] values
+            np.save(cropped_normalized_masked_dir + '/' + basename, masked_image)
+
         print('Masked ' + str(len(normalized_crops)) + ' images')
 
     # Save list of images with no detections to CSV

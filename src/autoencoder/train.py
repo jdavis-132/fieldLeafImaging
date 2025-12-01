@@ -495,31 +495,21 @@ def visualize_reconstructions(
     images = images.cpu().permute(0, 2, 3, 1).numpy()
     reconstructions = reconstructions.cpu().permute(0, 2, 3, 1).numpy()
 
-    # Define colorspace maximum values
-    colorspace_max = {
-        'RGB': np.array([255, 255, 255]),
-        'LAB': np.array([100, 128, 128]),
-        'HSV': np.array([360, 1, 1]),
-        'YCrCb': np.array([255, 255, 255]),
-    }
-
-    # Get maximum values for current colorspace (default to RGB)
-    max_values = colorspace_max.get(colorspace.upper(), np.array([255, 255, 255]))
-
     # Create visualization
     fig, axes = plt.subplots(2, num_samples, figsize=(2 * num_samples, 4))
 
     for i in range(num_samples):
-        # Original image - multiply by colorspace max before plotting
-        img_scaled = np.clip(images[i], 0, 1) * max_values
-        axes[0, i].imshow(img_scaled.astype(np.uint8) if colorspace.upper() == 'RGB' else img_scaled)
+        # Original image - already in [0, 1], ready for display
+        # For RGB, matplotlib expects [0, 1] for float images
+        img_display = np.clip(images[i], 0, 1)
+        axes[0, i].imshow(img_display)
         axes[0, i].axis('off')
         if i == 0:
             axes[0, i].set_title('Original', fontsize=10)
 
-        # Reconstructed image - multiply by colorspace max before plotting
-        recon_scaled = np.clip(reconstructions[i], 0, 1) * max_values
-        axes[1, i].imshow(recon_scaled.astype(np.uint8) if colorspace.upper() == 'RGB' else recon_scaled)
+        # Reconstructed image - already in [0, 1], ready for display
+        recon_display = np.clip(reconstructions[i], 0, 1)
+        axes[1, i].imshow(recon_display)
         axes[1, i].axis('off')
         if i == 0:
             axes[1, i].set_title('Reconstructed', fontsize=10)
