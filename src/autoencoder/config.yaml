@@ -30,7 +30,7 @@ image:
   # Whether to use masked images (True/False)
   # If True, will look for cropped_{colorspace}_normalized_masked
   # If False, will look for cropped_{colorspace}_normalized
-  use_masked: false
+  use_masked: true
 
   # Target dimensions for resizing (height, width)
   # Images will be resized to this size

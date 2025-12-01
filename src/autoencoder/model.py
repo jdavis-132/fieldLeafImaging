@@ -469,9 +469,9 @@ class ConvolutionalAutoencoder(nn.Module):
             ModuleList containing decoder blocks
         """
         decoder_blocks = nn.ModuleList([
-            # Decoder Block 1: bottleneck -> 8, upsample to 64x64
+            # Decoder Block 1: encoded_channels -> 8, upsample to 64x64
             DecoderBlock(
-                self.bottleneck_dim[2], self.filters['dec1'],
+                self.encoded_channels, self.filters['dec1'],
                 kernel_size=3,
                 use_attention=self.use_attention,
                 attention_type=self.attention_type,
@@ -637,6 +637,9 @@ class ConvolutionalAutoencoder(nn.Module):
         if input_shape is None:
             input_shape = (1, self.input_channels, *self.input_size)
 
+        # Get device of model parameters
+        device = next(self.parameters()).device
+
         print("=" * 80)
         print("Convolutional Autoencoder Architecture")
         print("=" * 80)
@@ -648,8 +651,8 @@ class ConvolutionalAutoencoder(nn.Module):
         print(f"Encoded flat dim: {self.encoded_dim}")
         print()
 
-        # Create dummy input
-        x = torch.randn(input_shape)
+        # Create dummy input on same device as model
+        x = torch.randn(input_shape, device=device)
 
         print("ENCODER:")
         print("-" * 80)
@@ -664,7 +667,7 @@ class ConvolutionalAutoencoder(nn.Module):
         if self.is_variational:
             print("BOTTLENECK (VAE):")
             print("-" * 80)
-            mu, logvar = self.encode(torch.randn(input_shape))
+            mu, logvar = self.encode(torch.randn(input_shape, device=device))
             print(f"  fc_mu:     {tuple(mu.shape)}")
             print(f"  fc_logvar: {tuple(logvar.shape)}")
             z = self.reparameterize(mu, logvar)
@@ -672,7 +675,7 @@ class ConvolutionalAutoencoder(nn.Module):
         else:
             print("BOTTLENECK:")
             print("-" * 80)
-            z = self.encode(torch.randn(input_shape))
+            z = self.encode(torch.randn(input_shape, device=device))
             print(f"  fc_encode: {tuple(z.shape)}")
 
         print()
@@ -689,7 +692,7 @@ class ConvolutionalAutoencoder(nn.Module):
 
         # Show decoder block shapes by re-running
         z_reshaped = torch.randn(input_shape[0], self.encoded_channels,
-                                 self.encoded_h, self.encoded_w)
+                                 self.encoded_h, self.encoded_w, device=device)
         for i, decoder_block in enumerate(self.decoder):
             z_reshaped = decoder_block(z_reshaped)
             print(f"  Block {i+1}: {tuple(z_reshaped.shape)} "
