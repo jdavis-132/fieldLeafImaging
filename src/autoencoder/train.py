@@ -161,7 +161,7 @@ def initialize_model(
             patience = config['training'].get('scheduler_patience', 10)
             factor = config['training'].get('scheduler_factor', 0.5)
             scheduler = optim.lr_scheduler.ReduceLROnPlateau(
-                optimizer, mode='min', factor=factor, patience=patience, verbose=True
+                optimizer, mode='min', factor=factor, patience=patience
             )
         elif scheduler_type == 'step':
             step_size = config['training'].get('scheduler_step_size', 30)
@@ -464,7 +464,8 @@ def visualize_reconstructions(
     device: torch.device,
     save_path: Path,
     num_samples: int = 8,
-    is_vae: bool = False
+    is_vae: bool = False,
+    colorspace: str = 'RGB'
 ):
     """
     Generate and save sample reconstructions.
@@ -476,6 +477,7 @@ def visualize_reconstructions(
         save_path: Path to save visualization
         num_samples: Number of samples to visualize
         is_vae: Whether model is VAE
+        colorspace: Colorspace of images ('RGB', 'LAB', etc.)
     """
     model.eval()
 
@@ -493,18 +495,31 @@ def visualize_reconstructions(
     images = images.cpu().permute(0, 2, 3, 1).numpy()
     reconstructions = reconstructions.cpu().permute(0, 2, 3, 1).numpy()
 
+    # Define colorspace maximum values
+    colorspace_max = {
+        'RGB': np.array([255, 255, 255]),
+        'LAB': np.array([100, 128, 128]),
+        'HSV': np.array([360, 1, 1]),
+        'YCrCb': np.array([255, 255, 255]),
+    }
+
+    # Get maximum values for current colorspace (default to RGB)
+    max_values = colorspace_max.get(colorspace.upper(), np.array([255, 255, 255]))
+
     # Create visualization
     fig, axes = plt.subplots(2, num_samples, figsize=(2 * num_samples, 4))
 
     for i in range(num_samples):
-        # Original image
-        axes[0, i].imshow(np.clip(images[i], 0, 1))
+        # Original image - multiply by colorspace max before plotting
+        img_scaled = np.clip(images[i], 0, 1) * max_values
+        axes[0, i].imshow(img_scaled.astype(np.uint8) if colorspace.upper() == 'RGB' else img_scaled)
         axes[0, i].axis('off')
         if i == 0:
             axes[0, i].set_title('Original', fontsize=10)
 
-        # Reconstructed image
-        axes[1, i].imshow(np.clip(reconstructions[i], 0, 1))
+        # Reconstructed image - multiply by colorspace max before plotting
+        recon_scaled = np.clip(reconstructions[i], 0, 1) * max_values
+        axes[1, i].imshow(recon_scaled.astype(np.uint8) if colorspace.upper() == 'RGB' else recon_scaled)
         axes[1, i].axis('off')
         if i == 0:
             axes[1, i].set_title('Reconstructed', fontsize=10)
@@ -817,10 +832,11 @@ def main(config_path: str, resume_path: Optional[str] = None):
     )
 
     # Generate sample reconstructions
+    colorspace = config.get('image', {}).get('colorspace', 'RGB')
     visualize_reconstructions(
         model, val_loader, device,
         exp_dir / "plots" / "reconstructions" / "final_reconstructions.png",
-        num_samples=8, is_vae=is_vae
+        num_samples=8, is_vae=is_vae, colorspace=colorspace
     )
 
     # Save training summary
