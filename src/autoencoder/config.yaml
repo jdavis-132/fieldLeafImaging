@@ -28,9 +28,18 @@ image:
   colorspace: "RGB"
 
   # Whether to use masked images (True/False)
-  # If True, will look for cropped_{colorspace}_normalized_masked
-  # If False, will look for cropped_{colorspace}_normalized
+  # If normalize_colorspace is True:
+  #   - If use_masked is True: will look for cropped_{colorspace}_normalized_masked
+  #   - If use_masked is False: will look for cropped_{colorspace}_normalized
+  # If normalize_colorspace is False:
+  #   - If use_masked is True: will look for cropped/ and apply mask from masks_cropped/
+  #   - If use_masked is False: will look for cropped/
   use_masked: true
+
+  # Whether images are color-normalized (True/False)
+  # If True, uses cropped_{colorspace}_normalized[_masked] directories
+  # If False, uses cropped/ directory (and masks_cropped/ if use_masked is True)
+  normalize_colorspace: true
 
   # Target dimensions for resizing (height, width)
   # Images will be resized to this size

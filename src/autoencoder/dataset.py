@@ -30,6 +30,8 @@ class LeafImageDataset(Dataset):
         target_size: Tuple of (height, width) for resizing
         colorspace: Colorspace of images ('RGB', 'LAB', etc.)
         use_masked: Whether using masked images
+        normalize_colorspace: Whether images are color-normalized
+        mask_dir: Directory containing masks (used when normalize_colorspace=False and use_masked=True)
         cache_images: Whether to cache loaded images in memory
         image_cache: Dictionary storing cached images if enabled
     """
@@ -42,6 +44,8 @@ class LeafImageDataset(Dataset):
         target_size: Tuple[int, int] = (256, 256),
         colorspace: str = 'RGB',
         use_masked: bool = False,
+        normalize_colorspace: bool = True,
+        mask_dir: Optional[str] = None,
         cache_images: bool = False,
     ):
         """
@@ -54,6 +58,8 @@ class LeafImageDataset(Dataset):
             target_size: Tuple of (height, width) for resizing images
             colorspace: Colorspace of the images
             use_masked: Whether images are masked
+            normalize_colorspace: Whether images are color-normalized
+            mask_dir: Directory containing masks (used when normalize_colorspace=False and use_masked=True)
             cache_images: Whether to cache loaded images in memory
         """
         self.image_paths = image_paths
@@ -62,6 +68,8 @@ class LeafImageDataset(Dataset):
         self.target_size = target_size
         self.colorspace = colorspace
         self.use_masked = use_masked
+        self.normalize_colorspace = normalize_colorspace
+        self.mask_dir = mask_dir
         self.cache_images = cache_images
         self.image_cache: Dict[int, torch.Tensor] = {}
 
@@ -200,6 +208,47 @@ class LeafImageDataset(Dataset):
 
             # Convert BGR to RGB
             image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            # Apply mask if needed (normalize_colorspace=False and use_masked=True)
+            if not self.normalize_colorspace and self.use_masked and self.mask_dir is not None:
+                # Construct path to mask file
+                basename = os.path.basename(img_path)
+
+                # Handle case where mask_dir is just "masks_cropped" (relative)
+                if self.mask_dir == "masks_cropped":
+                    # Determine mask path from image path
+                    img_dir = os.path.dirname(img_path)
+                    parent_dir = os.path.dirname(img_dir)
+                    mask_path = os.path.join(parent_dir, "masks_cropped", basename)
+                else:
+                    # mask_dir is absolute path
+                    mask_path = os.path.join(self.mask_dir, basename)
+
+                # Load mask
+                if os.path.exists(mask_path):
+                    mask = cv2.imread(mask_path, cv2.IMREAD_COLOR)
+                    if mask is not None:
+                        # Convert BGR to RGB
+                        mask = cv2.cvtColor(mask, cv2.COLOR_BGR2RGB)
+
+                        # Resize mask to match image if needed
+                        if mask.shape[:2] != image.shape[:2]:
+                            mask = cv2.resize(
+                                mask,
+                                (image.shape[1], image.shape[0]),
+                                interpolation=cv2.INTER_NEAREST
+                            )
+
+                        # Convert mask to binary (0 or 1)
+                        # Mask is [255, 255, 255] for leaf pixels, [0, 0, 0] for background
+                        mask_binary = (mask / 255.0).astype(np.float32)
+
+                        # Apply mask by element-wise multiplication
+                        image = image.astype(np.float32) * mask_binary
+                    else:
+                        print(f"Warning: Failed to load mask: {mask_path}")
+                else:
+                    print(f"Warning: Mask not found: {mask_path}")
 
             # Resize to target size
             if image.shape[:2] != self.target_size:
