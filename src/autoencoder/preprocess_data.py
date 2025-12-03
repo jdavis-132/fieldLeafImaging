@@ -141,7 +141,7 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
         
 def normalize_pixel_values(image_path, out_dir, colorspace='RGB'):
     """
-    Normalize pixel values to [0, 1] range and save as NPY files.
+    Normalize pixel values to [0, 1] range and save as NPZ files.
 
     Args:
         image_path: Path to input image
@@ -178,32 +178,61 @@ def normalize_pixel_values(image_path, out_dir, colorspace='RGB'):
         b_normalized = b_channel / 255.0
         normalized_image = cv2.merge([l_normalized, a_normalized, b_normalized])
 
-    # Save as NPY file to preserve float32 [0, 1] values
+    # Save as NPZ file to preserve float32 [0, 1] values
     basename = os.path.basename(image_path)
-    basename_npy = os.path.splitext(basename)[0] + '.npy'
-    np.save(out_dir + '/' + basename_npy, normalized_image)
+    basename_npz = os.path.splitext(basename)[0] + '.npz'
+    np.savez_compressed(out_dir + '/' + basename_npz, image=normalized_image)
         
 def main():
     """
-    
-    1. Create directory for processed image dataset if non-existent with tags for specified parameters
-    2. Get SAM mask of the leaf
-    3. Get major axis of leaf
-    4. Crop image and mask to specified dims, with midrib major axis centered and perpendicular
-    5. Convert and normalize pixel values [0, 1] according to colorspace value
-    6. If use_mask = True, multiply by mask and save image
+    Pipeline steps:
+    1. Segment: Create leaf masks using SAM3/CV2
+    2. Crop: Align and crop images using masks
+    3. Normalize: Convert and normalize pixel values [0, 1] according to colorspace
+    4. Apply masks: Multiply normalized images by masks (if use_mask = True)
     """
-    
-    parser = argparse.ArgumentParser(description="Preprocess images for leaf autoencoder")
+
+    parser = argparse.ArgumentParser(
+        description="Preprocess images for leaf autoencoder",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog="""
+Pipeline Steps:
+  1. segment      - Segment leaves and create binary masks
+  2. crop         - Align and crop images using masks
+  3. normalize    - Normalize pixel values to [0, 1] range
+  4. apply_masks  - Apply masks to normalized images
+
+Examples:
+  # Run entire pipeline:
+  python preprocess_data.py -i data/raw -o data/processed
+
+  # Start from cropping step (if segmentation already done):
+  python preprocess_data.py -i data/raw -o data/processed --start_step crop
+
+  # Start from normalization step (if segmentation/cropping already done):
+  python preprocess_data.py -i data/raw -o data/processed --start_step normalize
+
+  # Only apply masks (if segmentation and normalization already done):
+  python preprocess_data.py -i data/raw -o data/processed --start_step apply_masks
+        """
+    )
     parser.add_argument('--input_dir', "-i", required=True, help="Input directory")
     parser.add_argument('--output_dir', '-o', required=True, help='Output directory')
-    parser.add_argument('--use_mask', '-m', default=True, help='Use masked images in training (default: False)')
+    parser.add_argument('--use_mask', '-m', default=True, help='Use masked images in training (default: True)')
     parser.add_argument('--colorspace', '-c', default='RGB', help="Colorspace ('RGB', 'HSV', 'LAB') to use")
     parser.add_argument('--normalize_to_reference', default=False, help='Currently not supported')
-    parser.add_argument('--pattern', default = '.jpg', help='File pattern to search for (default: jpg)')
-    
+    parser.add_argument('--pattern', default='.jpg', help='File pattern to search for (default: .jpg)')
+    parser.add_argument(
+        '--start_step',
+        type=str,
+        default='segment',
+        choices=['segment', 'crop', 'normalize', 'apply_masks'],
+        help='Pipeline step to start from (default: segment for full pipeline)'
+    )
+
     args = parser.parse_args()
-    # Create directories to save to
+
+    # Setup directories
     input_path = args.input_dir
     output_path = args.output_dir
     mask_dir = output_path + '/masks'
@@ -211,91 +240,214 @@ def main():
     cropped_mask_dir = mask_dir + '_cropped'
     cropped_normalized_dir = crop_dir + '_' + args.colorspace + '_normalized'
     cropped_normalized_masked_dir = cropped_normalized_dir + '_masked'
-    
+
+    # Create directories as needed
     os.makedirs(output_path, exist_ok=True)
-    os.makedirs(mask_dir, exist_ok=True)
-    os.makedirs(crop_dir, exist_ok=True)
-    os.makedirs(cropped_mask_dir, exist_ok=True)
-    os.makedirs(cropped_normalized_dir, exist_ok=True)
 
-    # Use CV2 segmentation (SAM3 disabled)
-    # print('Using CV2 segmentation')
-    # initialize SAM3
-    segmenter = LeafSegmenter(model_path='src/sam3')
-    print('Initialized SAM3')
+    # Determine step numbers for control flow
+    step_order = ['segment', 'crop', 'normalize', 'apply_masks']
+    start_step_idx = step_order.index(args.start_step)
 
-    # get list of images to process
-    raw_images = glob.glob(input_path + '/*' + args.pattern)
-    print('Found ' + str(len(raw_images)) + ' images')
+    print(f"\n{'='*80}")
+    print(f"Starting pipeline from step: {args.start_step}")
+    print(f"{'='*80}\n")
 
-    # Track images with no detections
+    # Track images with no detections (only relevant for segmentation)
     no_detection_images = []
 
-    for idx, image in enumerate(raw_images):
-        print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
-        sam3_results = segmenter.segment_image(image)
-        masks = sam3_results['masks']
+    # ========================================================================
+    # STEP 1: SEGMENT
+    # ========================================================================
+    if start_step_idx <= 0:
+        print("\n" + "="*80)
+        print("STEP 1: SEGMENT LEAVES")
+        print("="*80)
 
-        if len(masks) == 0:
-            # Use CV2 segmentation
-            print(f"  Segmenting with CV2...")
-            mask = segment_leaf.process_single(image)
-        else:
-            # Combine SAM3 masks
-            print(f"  Found {len(masks)} SAM3 masks, combining...")
-            mask = combine_masks(masks)
+        os.makedirs(mask_dir, exist_ok=True)
 
-        if mask is None or mask.sum() == 0:
-            print(f"  Segmentation failed, skipping...")
-            no_detection_images.append(image)
-            continue
+        # Initialize SAM3
+        segmenter = LeafSegmenter(model_path='src/sam3')
+        print('Initialized SAM3')
 
-        basename = os.path.splitext(os.path.basename(image))[0]
-        mask_path = mask_dir + '/' + basename + '.png'
+        # Get list of images to process
+        raw_images = glob.glob(input_path + '/*' + args.pattern)
+        print(f'Found {len(raw_images)} images to segment')
 
-        # Save mask (multiply by 255 to get proper white pixels)
-        cv2.imwrite(mask_path, mask * 255)
+        for idx, image in enumerate(raw_images):
+            print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
+            sam3_results = segmenter.segment_image(image)
+            masks = sam3_results['masks']
 
-        # Check if mask was saved successfully
-        if not os.path.exists(mask_path):
-            print(f"  Failed to save mask, skipping...")
-            continue
+            if len(masks) == 0:
+                # Use CV2 segmentation
+                print(f"  Segmenting with CV2...")
+                mask = segment_leaf.process_single(image)
+            else:
+                # Combine SAM3 masks
+                print(f"  Found {len(masks)} SAM3 masks, combining...")
+                mask = combine_masks(masks)
 
-        print(f"  Mask saved")
+            if mask is None or mask.sum() == 0:
+                print(f"  Segmentation failed, skipping...")
+                no_detection_images.append(image)
+                continue
 
-        # align and crop
-        try:
-            align_and_crop(image, mask_path, crop_dir, cropped_mask_dir, 500, 1000, 2000)
-            print(f"  Cropping complete")
-        except Exception as e:
-            print(f"  Error during cropping: {e}")
-            continue
-        
-    # get list of cropped images
-    cropped_images = glob.glob(crop_dir + '/*')
-    print('Raw images segmented, aligned, and cropped. Found ' + str(len(cropped_images)) + ' image crops.')
-    
-    for image in cropped_images:
-        # normalize pixel values
-        normalize_pixel_values(image, cropped_normalized_dir, args.colorspace)
-    
-    print('Normalized pixel values [0, 1] based on theoretical maximums in the ' + args.colorspace + ' colorspace')
-    if args.use_mask:
-        # get list of normalized crops (now .npy files)
-        normalized_crops = glob.glob(cropped_normalized_dir + '/*.npy')
+            basename = os.path.splitext(os.path.basename(image))[0]
+            mask_path = mask_dir + '/' + basename + '.png'
+
+            # Save mask (multiply by 255 to get proper white pixels)
+            cv2.imwrite(mask_path, mask * 255)
+
+            # Check if mask was saved successfully
+            if not os.path.exists(mask_path):
+                print(f"  Failed to save mask, skipping...")
+                continue
+
+            print(f"  Mask saved")
+
+        # Get list of created masks
+        masks_created = glob.glob(mask_dir + '/*.png')
+        print(f'\nSegmentation complete. Created {len(masks_created)} masks.')
+
+        # Save list of images with no detections to CSV
+        if no_detection_images:
+            no_detection_csv = output_path + '/no_detections.csv'
+            with open(no_detection_csv, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['image_path'])
+                for img in no_detection_images:
+                    writer.writerow([img])
+            print(f'Saved {len(no_detection_images)} images with no detections to: {no_detection_csv}')
+
+        print(f"\nSTEP 1 COMPLETE: Segmentation finished")
+    else:
+        print(f"STEP 1: SKIPPED (starting from {args.start_step})")
+
+    # ========================================================================
+    # STEP 2: CROP
+    # ========================================================================
+    if start_step_idx <= 1:
+        print("\n" + "="*80)
+        print("STEP 2: ALIGN AND CROP IMAGES")
+        print("="*80)
+
+        os.makedirs(crop_dir, exist_ok=True)
+        os.makedirs(cropped_mask_dir, exist_ok=True)
+
+        # Get list of raw images and their corresponding masks
+        raw_images = glob.glob(input_path + '/*' + args.pattern)
+        print(f'Found {len(raw_images)} raw images')
+
+        # Check for corresponding masks
+        masks_available = glob.glob(mask_dir + '/*.png')
+        print(f'Found {len(masks_available)} masks')
+
+        if len(masks_available) == 0:
+            print(f"ERROR: No masks found in {mask_dir}")
+            print("Please ensure Step 1 (segment) has been completed first.")
+            return
+
+        cropping_errors = []
+        cropped_count = 0
+
+        for idx, image in enumerate(raw_images):
+            basename = os.path.splitext(os.path.basename(image))[0]
+            mask_path = mask_dir + '/' + basename + '.png'
+
+            # Check if mask exists for this image
+            if not os.path.exists(mask_path):
+                if (idx + 1) % 100 == 0 or idx < 5:
+                    print(f"  [{idx+1}/{len(raw_images)}] Skipping {os.path.basename(image)} - no mask found")
+                continue
+
+            if (idx + 1) % 100 == 0 or idx == 0:
+                print(f"  Cropping image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
+
+            # Align and crop
+            try:
+                align_and_crop(image, mask_path, crop_dir, cropped_mask_dir, 500, 1000, 2000)
+                cropped_count += 1
+            except Exception as e:
+                cropping_errors.append((image, str(e)))
+                if len(cropping_errors) <= 5:
+                    print(f"  Error cropping {os.path.basename(image)}: {e}")
+
+        # Get list of cropped images
+        cropped_images = glob.glob(crop_dir + '/*')
+        print(f'\nCropping complete. Created {len(cropped_images)} cropped images.')
+
+        if cropping_errors:
+            print(f'Encountered {len(cropping_errors)} cropping errors')
+            if len(cropping_errors) <= 10:
+                for img, err in cropping_errors:
+                    print(f"  - {os.path.basename(img)}: {err}")
+
+        print(f"\nSTEP 2 COMPLETE: Aligned and cropped {cropped_count} images")
+    else:
+        print(f"STEP 2: SKIPPED (starting from {args.start_step})")
+
+    # ========================================================================
+    # STEP 3: NORMALIZE
+    # ========================================================================
+    if start_step_idx <= 2:
+        print("\n" + "="*80)
+        print("STEP 3: NORMALIZE PIXEL VALUES")
+        print("="*80)
+
+        os.makedirs(cropped_normalized_dir, exist_ok=True)
+
+        # Get list of cropped images
+        cropped_images = glob.glob(crop_dir + '/*')
+        print(f'Found {len(cropped_images)} cropped images to normalize')
+
+        if len(cropped_images) == 0:
+            print(f"ERROR: No cropped images found in {crop_dir}")
+            print("Please ensure Step 2 (crop) has been completed first.")
+            return
+
+        for idx, image in enumerate(cropped_images):
+            if (idx + 1) % 100 == 0 or idx == 0:
+                print(f"  Normalizing image {idx+1}/{len(cropped_images)}")
+            normalize_pixel_values(image, cropped_normalized_dir, args.colorspace)
+
+        print(f'Normalized pixel values [0, 1] based on theoretical maximums in the {args.colorspace} colorspace')
+        print(f"\nSTEP 3 COMPLETE: Normalized {len(cropped_images)} images")
+    else:
+        print(f"STEP 3: SKIPPED (starting from {args.start_step})")
+
+    # ========================================================================
+    # STEP 4: APPLY MASKS
+    # ========================================================================
+    if start_step_idx <= 3 and args.use_mask:
+        print("\n" + "="*80)
+        print("STEP 4: APPLY MASKS TO NORMALIZED IMAGES")
+        print("="*80)
+
         os.makedirs(cropped_normalized_masked_dir, exist_ok=True)
 
-        for image_path in normalized_crops:
-            # multiply by mask and save
+        # Get list of normalized crops (now .npz files)
+        normalized_crops = glob.glob(cropped_normalized_dir + '/*.npz')
+        print(f'Found {len(normalized_crops)} normalized images to mask')
+
+        if len(normalized_crops) == 0:
+            print(f"ERROR: No normalized images found in {cropped_normalized_dir}")
+            print("Please ensure Step 3 (normalize) has been completed first.")
+            return
+
+        masked_count = 0
+        for idx, image_path in enumerate(normalized_crops):
+            if (idx + 1) % 100 == 0 or idx == 0:
+                print(f"  Masking image {idx+1}/{len(normalized_crops)}")
+
             basename = os.path.basename(image_path)
-            # Load normalized image from NPY file
-            image = np.load(image_path)
+            # Load normalized image from NPZ file
+            image = np.load(image_path)['image']
 
             # Load mask (PNG) and normalize to [0, 1]
             mask_basename = os.path.splitext(basename)[0] + '.png'
             mask = cv2.imread(cropped_mask_dir + '/' + mask_basename)
             if mask is None:
-                print(f"Warning: Could not load mask for {basename}, skipping...")
+                print(f"  Warning: Could not load mask for {basename}, skipping...")
                 continue
 
             # Convert mask to RGB and normalize to [0, 1]
@@ -304,25 +456,39 @@ def main():
             # Apply mask
             masked_image = image * mask_rgb
 
-            # Save as NPY to preserve float32 [0, 1] values
-            np.save(cropped_normalized_masked_dir + '/' + basename, masked_image)
+            # Save as NPZ to preserve float32 [0, 1] values
+            np.savez_compressed(cropped_normalized_masked_dir + '/' + basename, image=masked_image)
+            masked_count += 1
 
-        print('Masked ' + str(len(normalized_crops)) + ' images')
-
-    # Save list of images with no detections to CSV
-    if no_detection_images:
-        no_detection_csv = output_path + '/no_detections.csv'
-        with open(no_detection_csv, 'w', newline='') as f:
-            writer = csv.writer(f)
-            writer.writerow(['image_path'])
-            for img in no_detection_images:
-                writer.writerow([img])
-        print(f'\nSaved {len(no_detection_images)} images with no detections to: {no_detection_csv}')
+        print(f'\nSTEP 4 COMPLETE: Masked {masked_count}/{len(normalized_crops)} images')
+    elif start_step_idx <= 3 and not args.use_mask:
+        print(f"STEP 4: SKIPPED (use_mask=False)")
     else:
-        print('\nAll images had detections!')
+        print(f"STEP 4: SKIPPED (starting from {args.start_step})")
 
-    print(f'\nImage preprocessing complete for {args.input_dir}')
-    print(f'Successfully processed: {len(raw_images) - len(no_detection_images)}/{len(raw_images)} images')
+    # ========================================================================
+    # FINAL SUMMARY
+    # ========================================================================
+    print("\n" + "="*80)
+    print("PIPELINE COMPLETE")
+    print("="*80)
+    print(f"Output directory: {output_path}")
+
+    if start_step_idx <= 0 and no_detection_images:
+        raw_images = glob.glob(input_path + '/*' + args.pattern)
+        print(f"Successfully processed: {len(raw_images) - len(no_detection_images)}/{len(raw_images)} images")
+
+    print("\nGenerated outputs:")
+    if start_step_idx <= 0:
+        print(f"  - Masks: {mask_dir}")
+    if start_step_idx <= 1:
+        print(f"  - Cropped images: {crop_dir}")
+        print(f"  - Cropped masks: {cropped_mask_dir}")
+    if start_step_idx <= 2:
+        print(f"  - Normalized images: {cropped_normalized_dir}")
+    if start_step_idx <= 3 and args.use_mask:
+        print(f"  - Masked normalized images: {cropped_normalized_masked_dir}")
+    print()
 
 
 if __name__ == "__main__":
