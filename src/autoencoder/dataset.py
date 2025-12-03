@@ -201,7 +201,12 @@ class LeafImageDataset(Dataset):
             img_path = self.image_paths[idx]
 
             # Check file extension to determine loading method
-            if img_path.endswith('.npy'):
+            if img_path.endswith('.npz'):
+                # Load normalized image from NPZ file (already in [0, 1] range and RGB)
+                image = np.load(img_path)['image']
+                if image is None or image.size == 0:
+                    raise ValueError(f"Failed to load image: {img_path}")
+            elif img_path.endswith('.npy'):
                 # Load normalized image from NPY file (already in [0, 1] range and RGB)
                 image = np.load(img_path)
                 if image is None or image.size == 0:
@@ -266,8 +271,8 @@ class LeafImageDataset(Dataset):
                 )
 
             # Convert to float32 and normalize to [0, 1] if needed
-            if img_path.endswith('.npy'):
-                # NPY files are already normalized float32 [0, 1]
+            if img_path.endswith('.npz') or img_path.endswith('.npy'):
+                # NPZ/NPY files are already normalized float32 [0, 1]
                 image = image.astype(np.float32)
             elif image.dtype == np.uint8:
                 # PNG/JPG files need normalization
