@@ -39,7 +39,7 @@ image:
   # Whether images are color-normalized (True/False)
   # If True, uses cropped_{colorspace}_normalized[_masked] directories
   # If False, uses cropped/ directory (and masks_cropped/ if use_masked is True)
-  normalize_colorspace: false
+  normalize_colorspace: true
 
   # Target dimensions for resizing (height, width)
   # Images will be resized to this size
