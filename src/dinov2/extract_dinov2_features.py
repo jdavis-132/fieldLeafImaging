@@ -244,7 +244,7 @@ def find_images(base_pattern="data/ne2025/device*"):
     image_paths = []
     for dir_path in dirs:
         if os.path.isdir(dir_path):
-            jpg_files = glob(os.path.join(dir_path, "*.jpg"))
+            jpg_files = glob(os.path.join(dir_path, "*.png"))
             image_paths.extend(jpg_files)
 
     print(f"✅ Found {len(image_paths)} images in {len(dirs)} directories")
@@ -338,10 +338,10 @@ def main():
 
     # Configuration
     MODEL_NAME = 'dinov2_vits14_reg'  # ViT-S/14 distilled with registers
-    OUTPUT_CSV = 'dinov2_features.csv'
-    IMAGE_PATTERN = 'data/ne2025/device*'
+    OUTPUT_CSV = 'output/dinov2_features.csv'
+    IMAGE_PATTERN = 'data/processed/ne2025/device*/cropped'
     DEVICE = 'cuda'  # Use CUDA for GPU acceleration
-    BATCH_SIZE = 32  # Adjust based on GPU memory (32 should be safe for RTX 3060)
+    BATCH_SIZE = 64  # Adjust based on GPU memory (32 should be safe for RTX 3060)
 
     # Find images
     image_paths = find_images(IMAGE_PATTERN)
