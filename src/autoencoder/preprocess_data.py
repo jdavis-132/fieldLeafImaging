@@ -18,8 +18,8 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import src.autoencoder.segment_leaf as segment_leaf
-# from src.sam3.segment_leaves import LeafSegmenter
-# from src.sam3.test_sam3 import combine_masks
+from src.sam3.segment_leaves import LeafSegmenter
+from src.sam3.test_sam3 import combine_masks
 from sklearn.decomposition import PCA
 
 
