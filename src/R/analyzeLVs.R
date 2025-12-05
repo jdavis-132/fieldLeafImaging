@@ -6,7 +6,14 @@ manual_scores <- read_excel('data/manual/DataRecord_2025_combined (1).xlsx', she
                             col_names = c('plotNumber', 'rep', 'date', 'genotype', 
                                           'score_A', 'score_B', 'score_average', 'notes'))
 
-embeddings_sam <- read_csv('src/sam2/sam2_image_embeddings.csv')
+embeddings_sam <- read_csv('output/sam3_embeddings.csv')
+embeddings_sam_metadata <- embeddings_sam %>% 
+  mutate(plotNumber = str_split_i(image_path, fixed('/'), 6) %>% 
+           str_split_i('_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(manual_scores, join_by(plotNumber)) %>% 
+  relocate(image_path, plotNumber, rep, date, genotype, score_A, score_B, score_average)
+write_csv(embeddings_sam_metadata, 'output/sam3_embeddings_metadata.csv')
 lv_cols <- colnames(embeddings_sam[2:ncol(embeddings_sam)])
 # look at distributions
 # plot histograms 
