@@ -121,18 +121,26 @@ def main() -> None:
     if input_path.is_dir():
         success = False
         out_dir = args.output_dir
+        out_dir.mkdir(parents=True, exist_ok=True)
         extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
         for img_path in sorted(input_path.iterdir()):
             if img_path.suffix.lower() not in extensions:
                 continue
             out_file = out_dir / f"{img_path.stem}_leaf.png"
-            if process_single(img_path, out_file):
+            binary_mask = process_single(img_path, args.tolerance1, args.tolerance2, args.down_from_top, args.up_from_bottom)
+            if binary_mask is not None:
+                cv2.imwrite(str(out_file), binary_mask)
+                print(f"Wrote {out_file}")
                 success = True
         if not success:
             raise SystemExit("No images were processed successfully.")
     else:
         out_file = Path(args.output_prefix).with_suffix(".leaf.png")
-        if not process_single(input_path, out_file):
+        binary_mask = process_single(input_path, args.tolerance1, args.tolerance2, args.down_from_top, args.up_from_bottom)
+        if binary_mask is not None:
+            cv2.imwrite(str(out_file), binary_mask)
+            print(f"Wrote {out_file}")
+        else:
             raise SystemExit(1)
 
 

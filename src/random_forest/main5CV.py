@@ -6,36 +6,47 @@ from sklearn.model_selection import GroupKFold
 from sklearn.metrics import mean_squared_error
 from sklearn import preprocessing
 from modelClass import base, RF
+import argparse
 # from pathlib import Path
 
+ parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
+    parser.add_argument("input-data", type=Path, help="Path to csv of input dataframe.")
+    parser.add_argument("--k", type=int, default=50, help="Number of folds.")
+    parser.add_argument("--predictor-prefix", type=int, default=50, help="Substring of predictor column names.")
+    parser.add_argument("--label", type=int, default=750, help="Column containing target labels to predict.")
+    parser.add_argument("--group", type=int, default=20, help="Column containing grouping information.")
+    parser.add_argument("--output-prefix", type=str, default="output/", help="Prefix for output files.")
+    args = parser.parse_args()
+
 # Number of folds for CV
-k = 5
+k = args.k
 
 # Load your dataset
 # Adjust the file path or loading mechanism as needed
-data = pd.read_csv("output/dinov2_features_metadata.csv")
-
+data = pd.read_csv(args.input_data, low_memory=False)
+data = data.dropna(subset=[arg.group, args.label])
 predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
 
 kfold = GroupKFold(n_splits = k)
-features = data[[col for col in df.columns if 'feature' in col]]
-scores = data['score_average']
-genotype = data['genotype']
+features = data[[col for col in data.columns if args.predictor_prefix in col]]
+scores = data[args.label]
+genotype = data[args.group]
+i = 1
     
 splits = kfold.split(X = features, y=scores, groups = genotype)
 for train_idx, test_idx in splits:
+    print('Starting fold: ' + str(i))
     train_ds = data.iloc[train_idx]
     test_ds = data.iloc[test_idx]
         
-    train_features = train_ds[[col for col in df.columns if 'feature' in col]]
-    train_response = train_ds['score_average']
+    train_features = train_ds[[col for col in data.columns if args.predictor_prefix in col]]
+    train_response = train_ds[args.label]
         
-    test_features = test_ds[[col for col in df.columns if 'feature' in col]]
+    test_features = test_ds[[col for col in data.columns if args.predictor_prefix in col]]
         
     test_features = preprocessing.StandardScaler().fit_transform(test_features)
-    test_response = test_ds['score_average']
-    test_plotNumbers = test_ds['plotNumber']
+    test_response = test_ds[args.label]
         
     model = RF(response = train_response, features = train_features, rescale_type = 'norm')
     model.grid_search()
@@ -44,8 +55,8 @@ for train_idx, test_idx in splits:
     predictions = model.predict(test_features)
     predictions = predictions.flatten()
         
-    fold_predictions = pd.DataFrame({'plotNumber': test_plotNumbers,
-                                     'predictedYield': predictions})
+    fold_predictions = pd.DataFrame({'label': test_response,
+                                     'predicted': predictions})
     predictions_ds = pd.concat([predictions_ds, fold_predictions])
         
     importance = model.feature_importances_
@@ -53,8 +64,10 @@ for train_idx, test_idx in splits:
     importance = pd.DataFrame(importance).T
         
     importance_ds = pd.concat([importance_ds, importance])
+    print('Fold ' + str(i) + ' of ' + str(k) + ' done')
+    i = i + 1
 
 # importance_ds = pd.DataFrame.from_dict(importance_ds)        
-predictions_ds.to_csv('output/RFpredictions5CV.csv')
-importance_ds.to_csv('output/featureImportances5CV.csv')
+predictions_ds.to_csv(args.output_prefix + 'predictions_rf.csv')
+importance_ds.to_csv(args.output_prefix + 'feature_importances_rf.csv')
 print('DONE')
