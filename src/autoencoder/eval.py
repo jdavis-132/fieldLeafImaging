@@ -1671,7 +1671,12 @@ def main():
                 config = yaml.safe_load(f)
 
         try:
-            dataloaders = create_dataloaders_from_config(config)
+            train_loader, val_loader, test_loader = create_dataloaders_from_config(config)
+            dataloaders = {
+                'train': train_loader,
+                'val': val_loader,
+                'test': test_loader
+            }
             model_dataloaders[model_name] = dataloaders
             print(f"  ✓ Created dataloaders for splits: {list(dataloaders.keys())}")
         except Exception as e:
