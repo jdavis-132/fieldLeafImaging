@@ -7,16 +7,16 @@ from sklearn.metrics import mean_squared_error
 from sklearn import preprocessing
 from modelClass import base, RF
 import argparse
-# from pathlib import Path
+from pathlib import Path
 
- parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
-    parser.add_argument("input-data", type=Path, help="Path to csv of input dataframe.")
-    parser.add_argument("--k", type=int, default=50, help="Number of folds.")
-    parser.add_argument("--predictor-prefix", type=int, default=50, help="Substring of predictor column names.")
-    parser.add_argument("--label", type=int, default=750, help="Column containing target labels to predict.")
-    parser.add_argument("--group", type=int, default=20, help="Column containing grouping information.")
-    parser.add_argument("--output-prefix", type=str, default="output/", help="Prefix for output files.")
-    args = parser.parse_args()
+parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
+parser.add_argument("input_data", type=Path, help="Path to csv of input dataframe.")
+parser.add_argument("--k", type=int, default=5, help="Number of folds.")
+parser.add_argument("--predictor_prefix", type=str, default='feature', help="Substring of predictor column names.")
+parser.add_argument("--label", type=str, default='score_average', help="Column containing target labels to predict.")
+parser.add_argument("--group", type=str, default='genotype', help="Column containing grouping information.")
+parser.add_argument("--output_prefix", type=str, default="output/", help="Prefix for output files.")
+args = parser.parse_args()
 
 # Number of folds for CV
 k = args.k
@@ -24,7 +24,7 @@ k = args.k
 # Load your dataset
 # Adjust the file path or loading mechanism as needed
 data = pd.read_csv(args.input_data, low_memory=False)
-data = data.dropna(subset=[arg.group, args.label])
+data = data.dropna(subset=[args.group, args.label])
 predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
 
