@@ -50,3 +50,38 @@ winsorize <- function(data, col, lower_prob, upper_prob)
   df[df[[col]] >= upper, col] <- upper
   return(df)
 }
+
+partitionVarianceSpATS <- function(data, response, genotype, x, y, covariates = NULL)
+{
+  x_seg <- floor(length(unique(data[[x]])) / 2) + 1
+  y_seg <- floor(length(unique(data[[y]])) / 2) + 1
+  spatial_formula <- as.formula(paste('~SAP(', x, ', ', y, ', nseg = c(', x_seg, ', ', y_seg, '))'))
+  
+  model <- SpATS(response, genotype, genotype.as.random = TRUE, 
+                 spatial = spatial_formula,
+                 random = covariates, data = data)
+  vc <- model$var.comp %>% 
+    as_tibble(rownames = 'component') %>% 
+    rename(variance = value) %>% 
+    mutate(proportion_variance = variance / sum(variance, na.rm = TRUE), 
+           response = response)
+  return(vc)
+}
+
+getSpATSBLUEs <- function(data, response, genotype, x, y, covariates_fixed = NULL, covariates_random = NULL)
+{
+  x_seg <- floor(length(unique(data[[x]])) / 2) + 1
+  y_seg <- floor(length(unique(data[[y]])) / 2) + 1
+  spatial_formula <- as.formula(paste('~SAP(', x, ', ', y, ', nseg = c(', x_seg, ', ', y_seg, '))'))
+  
+  model <- SpATS(response, genotype, genotype.as.random = FALSE, 
+                 spatial = spatial_formula,
+                 fixed = covariates_fixed, 
+                 random = covariates_random, data = data)
+  blues <- model$coeff %>% 
+    as_tibble(rownames = 'genotype') %>% 
+    filter(!str_detect(genotype, x) & !str_detect(genotype, y) & !str_detect(genotype, 'Intercept')) %>% 
+    add_row(genotype = sort(data[[genotype]])[1], value = 0) %>%
+    rename('{response}' := value)
+  return(blues)
+}
