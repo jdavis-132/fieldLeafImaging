@@ -32,8 +32,7 @@ df_field_index <- read_csv(field_index) %>%
                               genotype == 'PI656023' ~ "Segaolane",  
                               .default = genotype))
 
-df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber)) %>% 
-  filter(genotype %in% marker_genotypes)
+df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
 lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
@@ -77,13 +76,13 @@ for(v in response_vars[2:length(response_vars)])
                      getSpATSBLUEs(df, v, 'genotype', 'range', 'row'), 
                      join_by(genotype))
 }
-
+blues <- filter(blues, genotype %in% marker_genotypes)
 write_csv(blues, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 # Convert blues to plink for h2 in ldak
-convertPlasticityPCPhenotypesToPLINK(str_c('output/', out_prefix, '_blues.csv'), response_vars)
+convertPhenotypesToPLINK(str_c('output/', out_prefix, '_blues.csv'), response_vars)
 
 # split BLUEs dataframe for parallel GWAS
 splitDataFrame(blues, response_vars, str_c('output/', out_prefix, '_blues_'), 25)

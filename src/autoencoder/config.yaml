@@ -122,8 +122,8 @@ model:
   bottleneck_dim: 128
 
   # Attention mechanism configuration
-  use_attention: false
-  attention_type: "both"  # Options: "channel", "spatial", "both"
+  use_attention: true
+  attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)
   # If true, model must output mu and logvar for latent distribution
