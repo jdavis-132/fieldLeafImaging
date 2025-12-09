@@ -85,3 +85,14 @@ getSpATSBLUEs <- function(data, response, genotype, x, y, covariates_fixed = NUL
     rename('{response}' := value)
   return(blues)
 }
+
+convertPhenotypesToPLINK <- function(infile, phenotypes)
+{
+  print(infile)
+  plink <- read.csv(infile) %>% 
+    dplyr::mutate(FID = '0', 
+                  IID = genotype) %>% 
+    dplyr::select(FID, IID, any_of(phenotypes)) %>% 
+    relocate(FID, IID)
+  write_tsv(plink, str_replace(infile, '.csv', '.txt'), quote = 'needed')
+}
