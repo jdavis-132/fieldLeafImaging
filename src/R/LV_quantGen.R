@@ -2,10 +2,13 @@ library(tidyverse)
 source('src/R/Functions.R')
 print(getwd())
 
-# Usage: R CMD BATCH -embeddings.csv -field_index.csv -LV_prefix -out_prefix -winsor_strength -vcf_genotypes_list.txt LV_quantGen.R
+# Usage: R CMD BATCH -phenotype_source -embeddings.csv -field_index.csv -LV_prefix -out_prefix -winsor_strength -vcf_genotypes_list.txt LV_quantGen.R
 # Assumes plotNumber join column present in field_index
 # And image_path column in embeddings where basenames begin with plotNumber_*
+# phenotype_source should either be image or manual
+# if image, will look for image_path in join but if manual, plotNumber
 args <- commandArgs(trailingOnly = FALSE)
+phenotype_source <- str_remove(args[length(args)-6], fixed('-'))
 embeddings <- str_remove(args[length(args)-5], fixed('-'))
 field_index <- str_remove(args[length(args)-4], fixed('-'))
 LV_prefix <- str_remove(args[length(args)-3], fixed('-'))
@@ -16,11 +19,22 @@ vcf_genotypes <- str_remove(args[length(args)], fixed('-'))
 marker_genotypes <- read_tsv(vcf_genotypes, col_names = TRUE)
 marker_genotypes <- colnames(marker_genotypes)[10:ncol(marker_genotypes)]
 # join dataframes
-df_embeddings <- read_csv(embeddings) %>% 
-  dplyr::mutate(plotNumber = basename(image_path) %>% 
-           str_split_i('_', 1) %>% 
-           as.numeric()) %>% 
-  select(c(image_path, plotNumber, contains(LV_prefix)))
+df_embeddings <- read_csv(embeddings)
+if(phenotype_source == 'image')
+{
+  df_embeddings <- df_embeddings %>% 
+    dplyr::mutate(plotNumber = basename(image_path) %>% 
+                    str_split_i('_', 1) %>% 
+                    as.numeric()) %>% 
+    select(c(image_path, plotNumber, contains(LV_prefix)))
+  row_id <- 'image_path'
+} else
+{
+  df_embeddings <- df_embeddings %>% 
+    filter(across(contains(LV_prefix), ~!is.na(.x)))
+  row_id <- 'plotNumber'
+}
+
 
 df_field_index <- read_csv(field_index) %>% 
   mutate(genotype = str_remove_all(genotype, ' ')) %>% 
@@ -43,25 +57,34 @@ for(lv in lv_cols)
   df_winsor <- winsorize(df_winsor, lv, winsor_strength, 1 - winsor_strength)
 }
 
-# calculate PCs
-pcs <- getPCScores(df_winsor, all_of(lv_cols))
-
-# winsorize PCs
-pc_cols <- colnames(pcs)[str_detect(colnames(pcs), 'PC')]
-df_winsorpc <- pcs
-for(pc in pc_cols)
+if(phenotype_source=='image')
 {
-  df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
+  # calculate PCs
+  pcs <- getPCScores(df_winsor, all_of(lv_cols))
+  
+  # winsorize PCs
+  df_winsorpc <- pcs %>% 
+    rename_with(~str_c(out_prefix, '_', .x))
+  pc_cols <- colnames(pcs)[str_detect(colnames(pcs), 'PC')]
+  for(pc in pc_cols)
+  {
+    df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
+  }
+  # add to df
+  df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
+  
+  df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
+  
+  response_vars <- c(lv_cols, pc_cols)
+}else
+{
+  df <- df_winsor
+  response_vars <- lv_cols
 }
-# add to df
-df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
 
-df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
-
-response_vars <- c(lv_cols, pc_cols)
 # broad-sense variance partitioning 
 vp <- tibble()
-for( v in response_vars)
+for(v in response_vars)
 {
   vp <- bind_rows(vp, partitionVarianceSpATS(df, v, 'genotype', 'range', 'row'))
 }
