@@ -18,15 +18,15 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 import src.autoencoder.segment_leaf as segment_leaf
-# from src.sam3.segment_leaves import LeafSegmenter
-# from src.sam3.test_sam3 import combine_masks
+from src.sam3.segment_leaves import LeafSegmenter
+from src.sam3.test_sam3 import combine_masks
 from sklearn.decomposition import PCA
 
 
 """
 Preprocess images for leaf autoencoder
 1. Create directory for processed image dataset if non-existent with tags for specified parameters
-2. Get SAM mask of the leaf
+2. Get mask of the leaf (CV)
 3. Get major axis of leaf
 4. Crop image and mask to specified dims, with midrib major axis centered and perpendicular
 5. Convert and normalize pixel values [0, 1] according to colorspace value
@@ -36,11 +36,11 @@ Preprocess images for leaf autoencoder
 def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, y_dim):
     """
     Saves cropped images and cropped masks to crop_dir and mask_crop_dir using a sliding window along the principal axis of a mask.
-    
+
     Args:
         image_path: Path to image
         mask_path: Path to the binary mask image
-        crop_dir: directory to save image crops to 
+        crop_dir: directory to save image crops to
         mask_crop_dir: directory to save mask crops to
         step: Step size in pixels for sliding window movement
         x_dim: Width of the bounding box (along the major axis)
@@ -51,56 +51,55 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     if mask is None:
         raise ValueError(f"Could not load mask from {mask_path}")
-    
+
+    # Get image dimensions
+    img_height, img_width = image.shape[:2]
+
     # Find non-zero pixels in the mask
     y_coords, x_coords = np.where(mask > 0)
     if len(x_coords) == 0:
         raise ValueError("No non-zero pixels found in mask")
-    
+
     # Stack coordinates for PCA
     points = np.column_stack((x_coords, y_coords))
-    
+
     # Perform PCA to find principal direction
     pca = PCA(n_components=2)
     pca.fit(points)
-    
+
     # Get the principal axis (first component)
     principal_axis = pca.components_[0]  # [dx, dy] unit vector
-    
+
     # Get the perpendicular axis (second component)
     perpendicular_axis = pca.components_[1]
-    
+
     # Get the center point of the mask
     center_x = np.mean(x_coords)
     center_y = np.mean(y_coords)
-    
+
     # Project all points onto the principal axis to find extent
     projections = np.dot(points - [center_x, center_y], principal_axis)
     min_proj = np.min(projections)
     max_proj = np.max(projections)
-    
+
     # Calculate the starting and ending points along the principal axis
     start_point = np.array([center_x, center_y]) + min_proj * principal_axis
     end_point = np.array([center_x, center_y]) + max_proj * principal_axis
-    
+
     # Calculate total distance along principal axis
     total_distance = max_proj - min_proj
-    
+
     current_distance = 0
     i = 0
-    
+
     while current_distance + x_dim <= total_distance:
         # Calculate center of current window along principal axis
         window_center = start_point + (current_distance + x_dim/2) * principal_axis
-        
-        # Calculate the four corners of the bounding box
-        # The box is aligned with principal axis as x-direction and perpendicular as y-direction
-        corners = []
-        
+
         # Half dimensions
         half_x = x_dim / 2
         half_y = y_dim / 2
-        
+
         # Four corners in the rotated coordinate system
         local_corners = [
             [-half_x, -half_y],
@@ -108,36 +107,74 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
             [half_x, half_y],
             [-half_x, half_y]
         ]
-        
-        # Transform to image coordinates
-        for lc in local_corners:
-            corner = window_center + lc[0] * principal_axis + lc[1] * perpendicular_axis
-            corners.append(corner)
-        
-        corners = np.array(corners, dtype=np.float32)
-        
-        # Create destination points for the transformed rectangle
-        dst_points = np.array([
-            [0, 0],
-            [x_dim - 1, 0],
-            [x_dim - 1, y_dim - 1],
-            [0, y_dim - 1]
-            ], dtype=np.float32)
-        
-        # Get perspective transform matrix
-        transform_matrix = cv2.getPerspectiveTransform(corners, dst_points)
-        
-        # Apply the transformation to get the cropped and aligned image
-        cropped = cv2.warpPerspective(image, transform_matrix, (x_dim, y_dim))
-        mask_cropped = cv2.warpPerspective(mask, transform_matrix, (x_dim, y_dim))
-        
-        # Save image and mask to appropriate directories
-        image_basename = os.path.basename(image_path).replace('.jpg', '_' + str(i) + '.png')
-        cv2.imwrite(crop_dir + '/' + image_basename, cropped)
-        cv2.imwrite(mask_crop_dir + '/' + image_basename, mask_cropped)
+
+        # Function to calculate corners given a window center
+        def calculate_corners(center):
+            corners = []
+            for lc in local_corners:
+                corner = center + lc[0] * principal_axis + lc[1] * perpendicular_axis
+                corners.append(corner)
+            return np.array(corners, dtype=np.float32)
+
+        # Function to check if corners are within bounds
+        def corners_within_bounds(corners):
+            for corner in corners:
+                if corner[0] < 0 or corner[0] >= img_width or corner[1] < 0 or corner[1] >= img_height:
+                    return False
+            return True
+
+        # Calculate initial corners
+        corners = calculate_corners(window_center)
+
+        # If corners are out of bounds, search for valid perpendicular offset
+        best_offset = 0.0
+        corners_in_bounds = corners_within_bounds(corners)
+
+        if not corners_in_bounds:
+            # Try adjusting along perpendicular axis to find valid position
+            # Search in both positive and negative directions
+            search_range = max(img_width, img_height)  # Maximum possible offset needed
+            found_valid = False
+
+            # Try incremental steps to find a valid offset
+            for offset in np.linspace(-search_range, search_range, 200):
+                test_center = window_center + offset * perpendicular_axis
+                test_corners = calculate_corners(test_center)
+
+                if corners_within_bounds(test_corners):
+                    best_offset = offset
+                    corners = test_corners
+                    corners_in_bounds = True
+                    found_valid = True
+                    break
+
+        # Only save if we found a valid position
+        if corners_in_bounds:
+            window_center = window_center + best_offset * perpendicular_axis
+
+            # Create destination points for the transformed rectangle
+            dst_points = np.array([
+                [0, 0],
+                [x_dim - 1, 0],
+                [x_dim - 1, y_dim - 1],
+                [0, y_dim - 1]
+                ], dtype=np.float32)
+
+            # Get perspective transform matrix
+            transform_matrix = cv2.getPerspectiveTransform(corners, dst_points)
+
+            # Apply the transformation to get the cropped and aligned image
+            cropped = cv2.warpPerspective(image, transform_matrix, (x_dim, y_dim))
+            mask_cropped = cv2.warpPerspective(mask, transform_matrix, (x_dim, y_dim))
+
+            # Save image and mask to appropriate directories
+            image_basename = os.path.basename(image_path).replace('.jpg', '_' + str(i) + '.png')
+            cv2.imwrite(crop_dir + '/' + image_basename, cropped)
+            cv2.imwrite(mask_crop_dir + '/' + image_basename, mask_cropped)
+
+            i += 1
 
         current_distance += step
-        i += 1
         
 def normalize_pixel_values(image_path, out_dir, colorspace='RGB'):
     """
@@ -266,8 +303,8 @@ Examples:
         os.makedirs(mask_dir, exist_ok=True)
 
         # Initialize SAM3
-        # segmenter = LeafSegmenter(model_path='src/sam3')
-        # print('Initialized SAM3')
+        segmenter = LeafSegmenter(model_path='src/sam3')
+        print('Initialized SAM3')
 
         # Get list of images to process
         raw_images = glob.glob(input_path + '/*' + args.pattern)
@@ -275,22 +312,20 @@ Examples:
 
         for idx, image in enumerate(raw_images):
             print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
-            # sam3_results = segmenter.segment_image(image)
-            # masks = sam3_results['masks']
-
-            # if len(masks) == 0:
-            # Use CV2 segmentation
+            
             print(f"  Segmenting with CV2...")
             mask = segment_leaf.process_single(image)
-            # else:
-                # Combine SAM3 masks
-                # print(f"  Found {len(masks)} SAM3 masks, combining...")
-                # mask = combine_masks(masks)
-
-            if mask is None or mask.sum() == 0:
-                print(f"  Segmentation failed, skipping...")
-                no_detection_images.append(image)
-                continue
+            
+            if mask is None or np.sum(mask[int(mask.shape[0]/2):mask.shape[0], 0:(mask.shape[1] - 1)]) == 0:
+                sam3_results = segmenter.segment_image(image)
+                masks = sam3_results['masks']
+                print(f"  Found {len(masks)} SAM3 masks, combining...")
+                mask = combine_masks(masks)
+                
+                if mask is None or mask.sum() == 0:
+                    print(f"  Segmentation failed, skipping...")
+                    no_detection_images.append(image)
+                    continue
 
             basename = os.path.splitext(os.path.basename(image))[0]
             mask_path = mask_dir + '/' + basename + '.png'
