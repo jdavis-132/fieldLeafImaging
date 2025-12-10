@@ -17,8 +17,7 @@ def flood_remove(image: np.ndarray, seed: tuple[int, int], tolerance: int) -> tu
     Returns the updated image and the flood mask (uint8, 255 where filled).
     """
     height, width = image.shape[:2]
-    seed = c5011_LeafPhotoA_2025-09-09 16_15_48.428-05_00_leaf	7392631	3.23	3.76	4.55	7.48	13.26	26.59
-lamp_seed(seed[0], seed[1], width, height)
+    seed = clamp_seed(seed[0], seed[1], width, height)
 
     # Mask for floodFill must be 2 pixels larger than the image in each dimension.
     mask = np.zeros((height + 2, width + 2), np.uint8)
