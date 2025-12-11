@@ -93,11 +93,15 @@ write_csv(vp, str_c('output/', out_prefix, '_vp.csv'))
 
 #BLUEs
 blues <- getSpATSBLUEs(df, response_vars[1], 'genotype', 'range', 'row')
-for(v in response_vars[2:length(response_vars)])
+
+if(length(response_vars) > 1)
 {
-  blues <- full_join(blues, 
-                     getSpATSBLUEs(df, v, 'genotype', 'range', 'row'), 
-                     join_by(genotype))
+  for(v in response_vars[2:length(response_vars)])
+  {
+    blues <- full_join(blues, 
+                       getSpATSBLUEs(df, v, 'genotype', 'range', 'row'), 
+                       join_by(genotype))
+  }
 }
 blues <- filter(blues, genotype %in% marker_genotypes)
 write_csv(blues, str_c('output/', out_prefix, '_blues.csv'))
