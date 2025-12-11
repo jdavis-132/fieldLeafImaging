@@ -60,8 +60,19 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     if len(x_coords) == 0:
         raise ValueError("No non-zero pixels found in mask")
 
+    # Filter to only consider pixels at least 300 from left and right edges for PCA
+    # and at least 1000 pixels down from the top
+    edge_margin = 500
+    top_margin = 1200
+    valid_indices = (x_coords >= edge_margin) & (x_coords < img_width - edge_margin) & (y_coords >= top_margin)
+    x_coords_filtered = x_coords[valid_indices]
+    y_coords_filtered = y_coords[valid_indices]
+
+    if len(x_coords_filtered) == 0:
+        raise ValueError("No non-zero pixels found in mask after filtering edge and top pixels")
+
     # Stack coordinates for PCA
-    points = np.column_stack((x_coords, y_coords))
+    points = np.column_stack((x_coords_filtered, y_coords_filtered))
 
     # Perform PCA to find principal direction
     pca = PCA(n_components=2)
@@ -73,9 +84,20 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     # Get the perpendicular axis (second component)
     perpendicular_axis = pca.components_[1]
 
-    # Get the center point of the mask
-    center_x = np.mean(x_coords)
-    center_y = np.mean(y_coords)
+    # Get the center point of the mask (use filtered coordinates for consistency with PCA)
+    center_x = np.mean(x_coords_filtered)
+    center_y = np.mean(y_coords_filtered)
+
+    # Validate axis orientation: principal axis should have greater extent than perpendicular
+    # This prevents 90-degree rotation errors at leaf tips
+    temp_principal_proj = np.dot(points - [center_x, center_y], principal_axis)
+    temp_perpendicular_proj = np.dot(points - [center_x, center_y], perpendicular_axis)
+    principal_extent = np.max(temp_principal_proj) - np.min(temp_principal_proj)
+    perpendicular_extent = np.max(temp_perpendicular_proj) - np.min(temp_perpendicular_proj)
+
+    if perpendicular_extent > principal_extent:
+        # Swap axes if perpendicular has more extent (likely wrong orientation)
+        principal_axis, perpendicular_axis = perpendicular_axis, principal_axis
 
     # Project all points onto the principal axis to find extent
     projections = np.dot(points - [center_x, center_y], principal_axis)
@@ -94,7 +116,30 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
 
     while current_distance + x_dim <= total_distance:
         # Calculate center of current window along principal axis
-        window_center = start_point + (current_distance + x_dim/2) * principal_axis
+        window_center_on_axis = start_point + (current_distance + x_dim/2) * principal_axis
+
+        # Find the perpendicular center for this window region
+        # Project all mask points onto the principal axis
+        all_points = np.column_stack((x_coords, y_coords))
+        all_projections = np.dot(all_points - [center_x, center_y], principal_axis)
+
+        # Find points within current window region along principal axis
+        window_min_proj = min_proj + current_distance
+        window_max_proj = min_proj + current_distance + x_dim
+        in_window = (all_projections >= window_min_proj) & (all_projections <= window_max_proj)
+
+        # Calculate perpendicular offset to center on leaf content in this region
+        if np.sum(in_window) > 0:
+            window_points = all_points[in_window]
+            # Project these points onto perpendicular axis to find their mean position
+            perp_projections = np.dot(window_points - [center_x, center_y], perpendicular_axis)
+            mean_perp_offset = np.mean(perp_projections)
+        else:
+            # Fallback to no offset if no points in window
+            mean_perp_offset = 0
+
+        # Apply perpendicular offset to center the window on the leaf
+        window_center = window_center_on_axis + mean_perp_offset * perpendicular_axis
 
         # Half dimensions
         half_x = x_dim / 2
@@ -134,19 +179,21 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
             # Try adjusting along perpendicular axis to find valid position
             # Search in both positive and negative directions
             search_range = max(img_width, img_height)  # Maximum possible offset needed
-            found_valid = False
 
-            # Try incremental steps to find a valid offset
+            # Find all valid offsets, then choose the one closest to original position
+            valid_offsets = []
             for offset in np.linspace(-search_range, search_range, 200):
                 test_center = window_center + offset * perpendicular_axis
                 test_corners = calculate_corners(test_center)
 
                 if corners_within_bounds(test_corners):
-                    best_offset = offset
-                    corners = test_corners
-                    corners_in_bounds = True
-                    found_valid = True
-                    break
+                    valid_offsets.append(offset)
+
+            # Choose the offset closest to 0 (keeps window near original center)
+            if valid_offsets:
+                best_offset = min(valid_offsets, key=abs)
+                corners = calculate_corners(window_center + best_offset * perpendicular_axis)
+                corners_in_bounds = True
 
         # Only save if we found a valid position
         if corners_in_bounds:
@@ -167,12 +214,19 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
             cropped = cv2.warpPerspective(image, transform_matrix, (x_dim, y_dim))
             mask_cropped = cv2.warpPerspective(mask, transform_matrix, (x_dim, y_dim))
 
-            # Save image and mask to appropriate directories
-            image_basename = os.path.basename(image_path).replace('.jpg', '_' + str(i) + '.png')
-            cv2.imwrite(crop_dir + '/' + image_basename, cropped)
-            cv2.imwrite(mask_crop_dir + '/' + image_basename, mask_cropped)
+            # Calculate percentage of mask pixels that are true
+            mask_pixel_count = np.sum(mask_cropped > 0)
+            total_pixels = x_dim * y_dim
+            mask_percentage = mask_pixel_count / total_pixels
 
-            i += 1
+            # Only save if at least 20% of pixels are masked
+            if mask_percentage >= 0.20:
+                # Save image and mask to appropriate directories
+                image_basename = os.path.basename(image_path).replace('.jpg', '_' + str(i) + '.png')
+                cv2.imwrite(crop_dir + '/' + image_basename, cropped)
+                cv2.imwrite(mask_crop_dir + '/' + image_basename, mask_cropped)
+
+                i += 1
 
         current_distance += step
         
@@ -292,6 +346,9 @@ Examples:
     # Track images with no detections (only relevant for segmentation)
     no_detection_images = []
 
+    # Track segmentation methods used for each image
+    segmentation_methods = []
+
     # ========================================================================
     # STEP 1: SEGMENT
     # ========================================================================
@@ -312,19 +369,22 @@ Examples:
 
         for idx, image in enumerate(raw_images):
             print(f"\nProcessing image {idx+1}/{len(raw_images)}: {os.path.basename(image)}")
-            
+
             print(f"  Segmenting with CV2...")
             mask = segment_leaf.process_single(image)
-            
+            segmentation_method = 'CV2'
+
             if mask is None or np.sum(mask[int(mask.shape[0]/2):mask.shape[0], 0:(mask.shape[1] - 1)]) == 0:
                 sam3_results = segmenter.segment_image(image)
                 masks = sam3_results['masks']
                 print(f"  Found {len(masks)} SAM3 masks, combining...")
                 mask = combine_masks(masks)
-                
+                segmentation_method = 'SAM3'
+
                 if mask is None or mask.sum() == 0:
                     print(f"  Segmentation failed, skipping...")
                     no_detection_images.append(image)
+                    segmentation_methods.append({'image_path': image, 'segmentation_method': 'Failed'})
                     continue
 
             basename = os.path.splitext(os.path.basename(image))[0]
@@ -340,6 +400,9 @@ Examples:
 
             print(f"  Mask saved")
 
+            # Record which segmentation method was used
+            segmentation_methods.append({'image_path': image, 'segmentation_method': segmentation_method})
+
         # Get list of created masks
         masks_created = glob.glob(mask_dir + '/*.png')
         print(f'\nSegmentation complete. Created {len(masks_created)} masks.')
@@ -353,6 +416,16 @@ Examples:
                 for img in no_detection_images:
                     writer.writerow([img])
             print(f'Saved {len(no_detection_images)} images with no detections to: {no_detection_csv}')
+
+        # Save segmentation methods to CSV
+        if segmentation_methods:
+            segmentation_methods_csv = output_path + '/segmentation_methods.csv'
+            with open(segmentation_methods_csv, 'w', newline='') as f:
+                writer = csv.writer(f)
+                writer.writerow(['image_path', 'segmentation_method'])
+                for record in segmentation_methods:
+                    writer.writerow([record['image_path'], record['segmentation_method']])
+            print(f'Saved segmentation methods for {len(segmentation_methods)} images to: {segmentation_methods_csv}')
 
         print(f"\nSTEP 1 COMPLETE: Segmentation finished")
     else:

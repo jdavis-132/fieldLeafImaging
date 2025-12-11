@@ -68,20 +68,20 @@ partitionVarianceSpATS <- function(data, response, genotype, x, y, covariates = 
   return(vc)
 }
 
-getSpATSBLUEs <- function(data, response, genotype, x, y, covariates_fixed = NULL, covariates_random = NULL)
+getSpATSBLUEs <- function(df, response, genotype, x, y, covariates_fixed = NULL, covariates_random = NULL)
 {
-  x_seg <- floor(length(unique(data[[x]])) / 2) + 1
-  y_seg <- floor(length(unique(data[[y]])) / 2) + 1
+  x_seg <- floor(length(unique(df)) / 2) + 1
+  y_seg <- floor(length(unique(df[[y]])) / 2) + 1
   spatial_formula <- as.formula(paste('~SAP(', x, ', ', y, ', nseg = c(', x_seg, ', ', y_seg, '))'))
-  
+  print(response)
   model <- SpATS(response, genotype, genotype.as.random = FALSE, 
                  spatial = spatial_formula,
                  fixed = covariates_fixed, 
-                 random = covariates_random, data = data)
+                 random = covariates_random, data = df)
   blues <- model$coeff %>% 
     as_tibble(rownames = 'genotype') %>% 
     filter(!str_detect(genotype, x) & !str_detect(genotype, y) & !str_detect(genotype, 'Intercept')) %>% 
-    add_row(genotype = sort(data[[genotype]])[1], value = 0) %>%
+    add_row(genotype = sort(df[[genotype]])[1], value = 0) %>%
     rename('{response}' := value)
   return(blues)
 }
