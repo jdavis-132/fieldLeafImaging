@@ -96,6 +96,100 @@ def remove_pink_from_mask(image, mask, perimeter_width=500,
 
     return cleaned_mask
 
+
+def remove_reference_cards_from_mask(image, mask, min_card_area=5000, max_card_area=500000,
+                                     min_rectangularity=0.7, perimeter_region_width=800):
+    """
+    Remove color reference cards and other rectangular objects from the mask.
+
+    Reference cards are typically:
+    - Rectangular/square shaped
+    - Located near image edges
+    - Have distinct, non-green colors
+    - Relatively small compared to the leaf
+
+    Args:
+        image: Original RGB image (BGR format from cv2.imread)
+        mask: Binary mask to clean
+        min_card_area: Minimum area (in pixels) for a contour to be considered a card
+        max_card_area: Maximum area (in pixels) for a contour to be considered a card
+        min_rectangularity: Minimum ratio of contour area to bounding box area (0-1)
+        perimeter_region_width: Width of perimeter region where cards are likely located
+
+    Returns:
+        Cleaned mask with reference cards removed
+    """
+    cleaned_mask = mask.copy()
+
+    # Find contours in the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    if len(contours) == 0:
+        return cleaned_mask
+
+    # Find the largest contour (assumed to be the leaf)
+    largest_contour = max(contours, key=cv2.contourArea)
+    largest_area = cv2.contourArea(largest_contour)
+
+    h, w = mask.shape
+
+    # Create perimeter region mask
+    perimeter_mask = np.zeros((h, w), dtype=np.uint8)
+    perimeter_mask[:perimeter_region_width, :] = 255  # Top
+    perimeter_mask[-perimeter_region_width:, :] = 255  # Bottom
+    perimeter_mask[:, :perimeter_region_width] = 255  # Left
+    perimeter_mask[:, -perimeter_region_width:] = 255  # Right
+
+    # Check each contour to see if it's likely a reference card
+    for contour in contours:
+        area = cv2.contourArea(contour)
+
+        # Skip if it's the largest contour (leaf) or too small/large
+        if contour is largest_contour or area < min_card_area or area > max_card_area:
+            continue
+
+        # Skip if it's too large relative to the leaf (likely part of leaf)
+        if area > largest_area * 0.3:
+            continue
+
+        # Get bounding box and calculate rectangularity
+        x, y, bbox_w, bbox_h = cv2.boundingRect(contour)
+        bbox_area = bbox_w * bbox_h
+        rectangularity = area / bbox_area if bbox_area > 0 else 0
+
+        # Check if contour is rectangular
+        if rectangularity < min_rectangularity:
+            continue
+
+        # Check if contour is in perimeter region
+        contour_mask = np.zeros((h, w), dtype=np.uint8)
+        cv2.drawContours(contour_mask, [contour], -1, 255, -1)
+        in_perimeter = cv2.bitwise_and(contour_mask, perimeter_mask)
+        perimeter_overlap = np.sum(in_perimeter > 0) / area if area > 0 else 0
+
+        # If mostly in perimeter and rectangular, likely a reference card
+        if perimeter_overlap > 0.3:
+            # Check color - reference cards are typically not green
+            # Extract pixels from this contour in the original image
+            contour_pixels = image[contour_mask > 0]
+            if len(contour_pixels) > 0:
+                # Convert to HSV to check if it's green
+                hsv_pixels = cv2.cvtColor(contour_pixels.reshape(-1, 1, 3), cv2.COLOR_BGR2HSV)
+                hsv_pixels = hsv_pixels.reshape(-1, 3)
+
+                # Green hue range in HSV (approximately 35-85 degrees)
+                green_hue_mask = (hsv_pixels[:, 0] >= 35) & (hsv_pixels[:, 0] <= 85)
+                green_sat_mask = hsv_pixels[:, 1] >= 30  # Minimum saturation for green
+                green_pixels = np.sum(green_hue_mask & green_sat_mask)
+                green_ratio = green_pixels / len(hsv_pixels)
+
+                # If less than 50% green, likely a reference card
+                if green_ratio < 0.5:
+                    # Remove this contour from the mask
+                    cv2.drawContours(cleaned_mask, [contour], -1, 0, -1)
+
+    return cleaned_mask
+
 def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, y_dim,
                    perimeter_width=500, color_ranges=None):
     """
@@ -123,6 +217,9 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     mask = remove_pink_from_mask(image, mask, perimeter_width=perimeter_width,
                                  color_ranges=color_ranges)
 
+    # Remove color reference cards and other rectangular objects from the mask
+    mask = remove_reference_cards_from_mask(image, mask)
+
     # Get image dimensions
     img_height, img_width = image.shape[:2]
 
@@ -131,19 +228,8 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     if len(x_coords) == 0:
         raise ValueError("No non-zero pixels found in mask")
 
-    # Filter to only consider pixels at least 300 from left and right edges for PCA
-    # and at least 1000 pixels down from the top
-    edge_margin = 500
-    top_margin = 1200
-    valid_indices = (x_coords >= edge_margin) & (x_coords < img_width - edge_margin) & (y_coords >= top_margin)
-    x_coords_filtered = x_coords[valid_indices]
-    y_coords_filtered = y_coords[valid_indices]
-
-    if len(x_coords_filtered) == 0:
-        raise ValueError("No non-zero pixels found in mask after filtering edge and top pixels")
-
-    # Stack coordinates for PCA
-    points = np.column_stack((x_coords_filtered, y_coords_filtered))
+    # Stack coordinates for PCA (use ALL mask pixels, no filtering)
+    points = np.column_stack((x_coords, y_coords))
 
     # Perform PCA to find principal direction
     pca = PCA(n_components=2)
@@ -155,9 +241,9 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
     # Get the perpendicular axis (second component)
     perpendicular_axis = pca.components_[1]
 
-    # Get the center point of the mask (use filtered coordinates for consistency with PCA)
-    center_x = np.mean(x_coords_filtered)
-    center_y = np.mean(y_coords_filtered)
+    # Get the center point of the mask (use all coordinates)
+    center_x = np.mean(x_coords)
+    center_y = np.mean(y_coords)
 
     # Validate axis orientation: principal axis should have greater extent than perpendicular
     # This prevents 90-degree rotation errors at leaf tips
@@ -200,11 +286,14 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
         in_window = (all_projections >= window_min_proj) & (all_projections <= window_max_proj)
 
         # Calculate perpendicular offset to center on leaf content in this region
+        # FIX 3: Use local window center instead of global center reference
         if np.sum(in_window) > 0:
             window_points = all_points[in_window]
-            # Project these points onto perpendicular axis to find their mean position
-            perp_projections = np.dot(window_points - [center_x, center_y], perpendicular_axis)
-            mean_perp_offset = np.mean(perp_projections)
+            # Calculate the geometric center of points in this window
+            window_points_center = np.mean(window_points, axis=0)
+            # Calculate perpendicular offset from window_center_on_axis to this center
+            offset_vector = window_points_center - window_center_on_axis
+            mean_perp_offset = np.dot(offset_vector, perpendicular_axis)
         else:
             # Fallback to no offset if no points in window
             mean_perp_offset = 0
@@ -243,6 +332,7 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
         corners = calculate_corners(window_center)
 
         # If corners are out of bounds, search for valid perpendicular offset
+        # FIX 2: Choose offset that maximizes leaf content, not just closest to zero
         best_offset = 0.0
         corners_in_bounds = corners_within_bounds(corners)
 
@@ -251,18 +341,30 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
             # Search in both positive and negative directions
             search_range = max(img_width, img_height)  # Maximum possible offset needed
 
-            # Find all valid offsets, then choose the one closest to original position
-            valid_offsets = []
+            # Find all valid offsets and score them by leaf content coverage
+            valid_offsets_with_scores = []
             for offset in np.linspace(-search_range, search_range, 200):
                 test_center = window_center + offset * perpendicular_axis
                 test_corners = calculate_corners(test_center)
 
                 if corners_within_bounds(test_corners):
-                    valid_offsets.append(offset)
+                    # Score this offset by how many mask pixels would be in the window
+                    # Transform mask to this window position to count pixels
+                    dst_points = np.array([
+                        [0, 0],
+                        [x_dim - 1, 0],
+                        [x_dim - 1, y_dim - 1],
+                        [0, y_dim - 1]
+                    ], dtype=np.float32)
+                    transform_matrix = cv2.getPerspectiveTransform(test_corners, dst_points)
+                    test_mask = cv2.warpPerspective(mask, transform_matrix, (x_dim, y_dim))
+                    mask_pixel_count = np.sum(test_mask > 0)
 
-            # Choose the offset closest to 0 (keeps window near original center)
-            if valid_offsets:
-                best_offset = min(valid_offsets, key=abs)
+                    valid_offsets_with_scores.append((offset, mask_pixel_count))
+
+            # Choose the offset with maximum leaf content
+            if valid_offsets_with_scores:
+                best_offset, best_score = max(valid_offsets_with_scores, key=lambda x: x[1])
                 corners = calculate_corners(window_center + best_offset * perpendicular_axis)
                 corners_in_bounds = True
 
