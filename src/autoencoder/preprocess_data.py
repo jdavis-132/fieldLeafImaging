@@ -33,7 +33,71 @@ Preprocess images for leaf autoencoder
 6. If use_mask = True,.multiply 
 """
         
-def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, y_dim):
+def remove_pink_from_mask(image, mask, perimeter_width=500,
+                          color_ranges=None):
+    """
+    Remove light pink areas from the mask, focusing on the perimeter of the image.
+
+    Args:
+        image: Original RGB image (BGR format from cv2.imread)
+        mask: Binary mask to clean
+        perimeter_width: Width of perimeter region to check for pink pixels (default: 500)
+        color_ranges: List of tuples of (lower_bound, upper_bound) in HSV format.
+                     If None, uses default pink foam ranges based on NE2025 device5 data.
+                     Each bound should be a numpy array or list of [H, S, V] values.
+
+    Returns:
+        Cleaned mask with pink areas removed
+    """
+    # Convert image to HSV for better color detection
+    hsv = cv2.cvtColor(image, cv2.COLOR_BGR2HSV)
+
+    # Define default pink color ranges in HSV based on actual foam color from
+    # data/ne2025/device5/1078_LeafPhotoA_2025-09-08 13_10_59.348-05_00.jpg
+    # Analysis showed: Hue 0-14 (median: 12), Saturation 21-166 (median: 51), Value 151-255 (median: 198)
+    if color_ranges is None:
+        color_ranges = [
+            # Primary range: Light pinkish foam (reddish-pink)
+            (np.array([0, 20, 150]), np.array([20, 170, 255])),
+            # Secondary range: Magenta-ish pink (fallback for other foam colors)
+            (np.array([140, 30, 100]), np.array([170, 255, 255]))
+        ]
+
+    # Create masks for each color range and combine them
+    pink_pixels = None
+    for lower_bound, upper_bound in color_ranges:
+        # Ensure bounds are numpy arrays
+        lower = np.array(lower_bound) if not isinstance(lower_bound, np.ndarray) else lower_bound
+        upper = np.array(upper_bound) if not isinstance(upper_bound, np.ndarray) else upper_bound
+
+        range_mask = cv2.inRange(hsv, lower, upper)
+
+        if pink_pixels is None:
+            pink_pixels = range_mask
+        else:
+            pink_pixels = cv2.bitwise_or(pink_pixels, range_mask)
+
+    # Create a perimeter mask (focus on edges of image)
+    h, w = mask.shape
+    perimeter_mask = np.zeros((h, w), dtype=np.uint8)
+
+    # Mark perimeter regions
+    perimeter_mask[:perimeter_width, :] = 255  # Top
+    perimeter_mask[-perimeter_width:, :] = 255  # Bottom
+    perimeter_mask[:, :perimeter_width] = 255  # Left
+    perimeter_mask[:, -perimeter_width:] = 255  # Right
+
+    # Combine: find pink pixels in perimeter area
+    pink_in_perimeter = cv2.bitwise_and(pink_pixels, perimeter_mask)
+
+    # Remove pink pixels from the original mask
+    cleaned_mask = mask.copy()
+    cleaned_mask[pink_in_perimeter > 0] = 0
+
+    return cleaned_mask
+
+def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, y_dim,
+                   perimeter_width=500, color_ranges=None):
     """
     Saves cropped images and cropped masks to crop_dir and mask_crop_dir using a sliding window along the principal axis of a mask.
 
@@ -45,12 +109,19 @@ def align_and_crop(image_path, mask_path, crop_dir, mask_crop_dir, step, x_dim, 
         step: Step size in pixels for sliding window movement
         x_dim: Width of the bounding box (along the major axis)
         y_dim: Height of the bounding box (perpendicular to major axis)
+        perimeter_width: Width of perimeter region to check for foam pixels (default: 500)
+        color_ranges: List of tuples of (lower_bound, upper_bound) in HSV format for foam removal.
+                     If None, uses default pink foam ranges.
     """
-    # Load the mask
+    # Load the mask and image
     image = cv2.imread(image_path)
     mask = cv2.imread(mask_path, cv2.IMREAD_GRAYSCALE)
     if mask is None:
         raise ValueError(f"Could not load mask from {mask_path}")
+
+    # Remove pink foam areas from the mask
+    mask = remove_pink_from_mask(image, mask, perimeter_width=perimeter_width,
+                                 color_ranges=color_ranges)
 
     # Get image dimensions
     img_height, img_width = image.shape[:2]
