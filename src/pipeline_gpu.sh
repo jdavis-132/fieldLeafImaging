@@ -1,3 +1,7 @@
+#!/bin/bash
+set -e  # Exit on error
+set -x  # Print commands (for debugging)
+
 # preprocess the data
 ./src/autoencoder/preprocess_data.sh
 
@@ -5,7 +9,7 @@
 python src/dinov2/extract_dinov2_features.py
 
 # get SAM3 embeddings 
-python src/sam3/extract_embeddings.py "data/ne2025/device*/cropped/*.png -o output/sam3_embeddings.csv
+python src/sam3/extract_embeddings.py "data/processed/ne2025/device*/cropped/*.png" -o output/sam3_embeddings.csv
 
 # train models
 

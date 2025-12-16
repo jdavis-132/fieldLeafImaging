@@ -369,9 +369,8 @@ Examples:
             print(f"  Segmenting with CV2...")
             mask = segment_leaf.process_single(image)
             segmentation_method = 'CV2'
-            mask_pixels = np.sum(mask[int(mask.shape[0]/2):mask.shape[0], 0:(mask.shape[1] - 1)])
 
-            if mask is None or mask_pixels < args.mask_pixels_min or mask_pixels > args.mask_pixels_max:
+            if mask is None or mask.sum() < args.mask_pixels_min or mask.sum() > args.mask_pixels_max:
                 sam3_results = segmenter.segment_image(image)
                 masks = sam3_results['masks']
                 print(f"  Found {len(masks)} SAM3 masks, combining...")

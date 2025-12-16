@@ -63,9 +63,9 @@ if(phenotype_source=='image')
   pcs <- getPCScores(df_winsor, all_of(lv_cols))
   
   # winsorize PCs
-  df_winsorpc <- pcs %>% 
-    rename_with(~str_c(out_prefix, '_', .x))
-  pc_cols <- colnames(pcs)[str_detect(colnames(pcs), 'PC')]
+  df_winsorpc <- pcs %>%
+    rename_with(~str_c(out_prefix, '_', .x), .cols=contains('PC'))
+  pc_cols <- colnames(df_winsorpc)[str_detect(colnames(df_winsorpc), 'PC')]
   for(pc in pc_cols)
   {
     df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
