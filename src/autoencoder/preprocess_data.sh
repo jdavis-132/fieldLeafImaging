@@ -1,11 +1,11 @@
 conda activate jupyterlab-debugger
 
-python src/autoencoder/preprocess_data.py -i data/ne2025/device1 -o data/processed/ne2025/device1 
+python src/autoencoder/preprocess_data.py -i data/ne2025/device1 -o data/processed/ne2025/device1
 python src/autoencoder/preprocess_data.py -i data/ne2025/device2 -o data/processed/ne2025/device2
 python src/autoencoder/preprocess_data.py -i data/ne2025/device3 -o data/processed/ne2025/device3
-python src/autoencoder/preprocess_data.py -i data/ne2025/device4 -o data/processed/ne2025/device4 
+python src/autoencoder/preprocess_data.py -i data/ne2025/device4 -o data/processed/ne2025/device4
 python src/autoencoder/preprocess_data.py -i data/ne2025/device5 -o data/processed/ne2025/device5
-python src/autoencoder/preprocess_data.py -i data/ne2025/device6 -o data/processed/ne2025/device6 
+python src/autoencoder/preprocess_data.py -i data/ne2025/device6 -o data/processed/ne2025/device6
 python src/autoencoder/preprocess_data.py -i data/ne2025/device7 -o data/processed/ne2025/device7
 python src/autoencoder/preprocess_data.py -i data/ne2025/device8 -o data/processed/ne2025/device8
 

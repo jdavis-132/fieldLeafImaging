@@ -34,7 +34,7 @@ image:
   # If normalize_colorspace is False:
   #   - If use_masked is True: will look for cropped/ and apply mask from masks_cropped/
   #   - If use_masked is False: will look for cropped/
-  use_masked: false
+  use_masked: true
 
   # Whether images are color-normalized (True/False)
   # If True, uses cropped_{colorspace}_normalized[_masked] directories
@@ -122,7 +122,7 @@ model:
   bottleneck_dim: 128
 
   # Attention mechanism configuration
-  use_attention: true
+  use_attention: false
   attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)

@@ -88,7 +88,7 @@ dataloader:
 # Loss function configuration
 loss:
   # Loss type: 'l1', 'disease_weighted_l1', or 'vae'
-  type: 'l1'
+  type: 'disease_weighted_l1'
 
   # For VAE loss: specify reconstruction loss type
   # Options: 'l1' or 'disease_weighted_l1'
@@ -98,7 +98,7 @@ loss:
   # Controls strength of weighting for non-green pixels
   # Higher values = stronger penalty for disease symptoms
   # Typical range: 0.5 - 3.0
-  disease_weight_alpha: 1.0
+  disease_weight_alpha: 2.0
 
   # Beta parameter for VAE (beta-VAE framework)
   # Controls trade-off between reconstruction and latent space regularization
@@ -122,7 +122,7 @@ model:
   bottleneck_dim: 128
 
   # Attention mechanism configuration
-  use_attention: true
+  use_attention: false
   attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)

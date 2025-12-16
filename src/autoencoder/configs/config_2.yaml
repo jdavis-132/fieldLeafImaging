@@ -88,7 +88,7 @@ dataloader:
 # Loss function configuration
 loss:
   # Loss type: 'l1', 'disease_weighted_l1', or 'vae'
-  type: 'l1'
+  type: 'vae'
 
   # For VAE loss: specify reconstruction loss type
   # Options: 'l1' or 'disease_weighted_l1'
@@ -122,12 +122,12 @@ model:
   bottleneck_dim: 128
 
   # Attention mechanism configuration
-  use_attention: true
+  use_attention: false
   attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)
   # If true, model must output mu and logvar for latent distribution
-  is_vae: false
+  is_vae: true
 
   # Model architecture type (for future extensions)
   architecture: "pdse_lite"  # PDSE-Lite CAE architecture
