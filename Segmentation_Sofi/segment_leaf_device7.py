@@ -56,101 +56,89 @@ def largest_component_touching_sides(binary_mask: np.ndarray) -> tuple[int | Non
         return None, None
 
     return best_label, (labels == best_label)
-  
-def process_single(image_path, tolerance1=50, tolerance2=50, down_from_top=750, up_from_bottom=20, card_height=1310, card_width=750, trim_left=300, trim_right=100):
-    """Process a single image and return a binary mask."""
-    image = cv2.imread(str(image_path))
-    if image is None:
-        print(f"Could not read image at {image_path}")
-        return None
-
-    height, width = image.shape[:2]
-    seed1 = (width // 2, down_from_top)
-    seed2 = (width // 2, height - up_from_bottom)
-
-    working, _ = flood_remove(image, seed1, tolerance1)
-    working, _ = flood_remove(working, seed2, tolerance2)
-
-    foreground_mask = np.any(working != 0, axis=2).astype(np.uint8)
-    _, leaf_mask = largest_component_touching_sides(foreground_mask)
-    if leaf_mask is None:
-        print(f"No component touches both borders after removal for {image_path}")
-        return None
-
-    # Trim noisy edges near the borders - device 7 specific values
-    trim_left = trim_left
-    trim_right = trim_right
-
-    if trim_left + trim_right >= width:
-        print(f"Image {image_path} is too narrow for trim_left={trim_left} + trim_right={trim_right}")
-        return None
-
-    leaf_mask[:, :trim_left] = False
-    leaf_mask[:, width - trim_right :] = False
-
-    # Keep only the largest remaining component after trimming.
-    num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(leaf_mask.astype(np.uint8), connectivity=8)
-    best_label = None
-    best_area = 0
-    for label in range(1, num_labels):  # skip background
-        area = stats[label, cv2.CC_STAT_AREA]
-        if area > best_area:
-            best_area = area
-            best_label = label
-    if best_label is None:
-        print(f"No component remains after trimming for {image_path}")
-        return None
-    leaf_mask = labels == best_label
-
-    # Create binary mask: white (255) for leaf pixels, black (0) for background
-    binary_mask = (leaf_mask).astype(np.uint8)
-    if np.sum(binary_mask[0:card_height, width - card_width :]) > 0:
-        return None
-    # cv2.imwrite(str(out_path), binary_mask)
-    # print(f"Wrote {out_path}")
-    return binary_mask
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Segment leaf(s) by removing two flood-filled regions and keeping the largest component touching both sides.")
+    parser = argparse.ArgumentParser(description="Segment leaf(s) by removing two flood-filled regions and keeping the largest component touching both sides. Device 7 version with adjustable trim.")
     parser.add_argument("image", type=Path, help="Path to the input image or a directory of images.")
     parser.add_argument("--tolerance1", type=int, default=50, help="Color tolerance for the first flood fill (top-middle seed).")
     parser.add_argument("--tolerance2", type=int, default=50, help="Color tolerance for the second flood fill (bottom-middle seed).")
     parser.add_argument("--down-from-top", type=int, default=750, help="Pixels down from the top for the first seed (x is centered).")
     parser.add_argument("--up-from-bottom", type=int, default=20, help="Pixels up from the bottom for the second seed (x is centered).")
     parser.add_argument("--output-prefix", type=str, default="leaf_segmentation", help="Prefix for output files when a single image is provided.")
-    parser.add_argument("--output-dir", type=Path, default=Path("demo2_leaves"), help="Directory to write outputs when processing a folder.")
+    parser.add_argument("--output-dir", type=Path, default=Path("demo2_leaves_device7"), help="Directory to write outputs when processing a folder.")
     parser.add_argument("--trim-left", type=int, default=300
 , help="Pixels to trim from left border (default: 300 for device 7).")
     parser.add_argument("--trim-right", type=int, default=100, help="Pixels to trim from right border (default: 100 for device 7).")
-    parser.add_argument("--card-height", type=int, default=1310, help='Pixel height of color reference card in upper right corner')
-    parser.add_argument('--card-width', type=int, default=750, help='Pixel height of color reference card in upper right corner')
     args = parser.parse_args()
+
+    def process_single(image_path: Path, out_path: Path) -> bool:
+        image = cv2.imread(str(image_path))
+        if image is None:
+            print(f"Could not read image at {image_path}")
+            return False
+
+        height, width = image.shape[:2]
+        seed1 = (width // 2, args.down_from_top)
+        seed2 = (width // 2, height - args.up_from_bottom)
+
+        working, _ = flood_remove(image, seed1, args.tolerance1)
+        working, _ = flood_remove(working, seed2, args.tolerance2)
+
+        foreground_mask = np.any(working != 0, axis=2).astype(np.uint8)
+        _, leaf_mask = largest_component_touching_sides(foreground_mask)
+        if leaf_mask is None:
+            print(f"No component touches both borders after removal for {image_path}")
+            return False
+
+        # Trim noisy edges near the borders - device 7 specific values
+        trim_left = args.trim_left
+        trim_right = args.trim_right
+
+        if trim_left + trim_right >= width:
+            print(f"Image {image_path} is too narrow for trim_left={trim_left} + trim_right={trim_right}")
+            return False
+
+        leaf_mask[:, :trim_left] = False
+        leaf_mask[:, width - trim_right :] = False
+
+        # Keep only the largest remaining component after trimming.
+        num_labels, labels, stats, _ = cv2.connectedComponentsWithStats(leaf_mask.astype(np.uint8), connectivity=8)
+        best_label = None
+        best_area = 0
+        for label in range(1, num_labels):  # skip background
+            area = stats[label, cv2.CC_STAT_AREA]
+            if area > best_area:
+                best_area = area
+                best_label = label
+        if best_label is None:
+            print(f"No component remains after trimming for {image_path}")
+            return False
+        leaf_mask = labels == best_label
+
+        leaf_only = np.zeros_like(image)
+        leaf_only[leaf_mask] = image[leaf_mask]
+        out_path.parent.mkdir(parents=True, exist_ok=True)
+        cv2.imwrite(str(out_path), leaf_only)
+        print(f"Wrote {out_path}")
+        return True
 
     input_path = args.image
     if input_path.is_dir():
         success = False
         out_dir = args.output_dir
-        out_dir.mkdir(parents=True, exist_ok=True)
         extensions = {".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"}
         for img_path in sorted(input_path.iterdir()):
             if img_path.suffix.lower() not in extensions:
                 continue
             out_file = out_dir / f"{img_path.stem}_leaf.png"
-            binary_mask = process_single(img_path, args.tolerance1, args.tolerance2, args.down_from_top, args.up_from_bottom, args.card_height, args.card_width)
-            if binary_mask is not None:
-                cv2.imwrite(str(out_file), binary_mask)
-                print(f"Wrote {out_file}")
+            if process_single(img_path, out_file):
                 success = True
         if not success:
             raise SystemExit("No images were processed successfully.")
     else:
         out_file = Path(args.output_prefix).with_suffix(".leaf.png")
-        binary_mask = process_single(input_path, args.tolerance1, args.tolerance2, args.down_from_top, args.up_from_bottom)
-        if binary_mask is not None:
-            cv2.imwrite(str(out_file), binary_mask)
-            print(f"Wrote {out_file}")
-        else:
+        if not process_single(input_path, out_file):
             raise SystemExit(1)
 
 

@@ -119,10 +119,10 @@ model:
 
   # Bottleneck dimension (latent vector size)
   # Typical values: 128, 256, 512
-  bottleneck_dim: 128
+  bottleneck_dim: 256
 
   # Attention mechanism configuration
-  use_attention: true
+  use_attention: false
   attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)

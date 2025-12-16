@@ -1057,30 +1057,59 @@ class MultiModelComparator:
             print(f"\nProcessing split: {split}")
 
             for model_name, evaluator in self.evaluators.items():
-                # Get this model's dataloader for this split
-                model_loaders = model_dataloaders.get(model_name)
-                if model_loaders is None:
-                    print(f"  Warning: No dataloaders for model '{model_name}'")
-                    continue
+                # Check if embeddings already exist in the model directory
+                model_dir = evaluator.model_info['path']
+                existing_embeddings_path = model_dir / f'embeddings_{split}.csv'
 
-                dataloader = model_loaders.get(split)
-                if dataloader is None:
-                    print(f"  Warning: Model '{model_name}' has no dataloader for split '{split}'")
-                    continue
+                if existing_embeddings_path.exists():
+                    print(f"  Loading existing embeddings for: {model_name} ({split})")
+                    print(f"    From: {existing_embeddings_path}")
 
-                print(f"  Extracting latents for: {model_name}")
+                    # Load embeddings from CSV
+                    df = pd.read_csv(existing_embeddings_path)
 
-                latents, paths, genotypes = evaluator.extract_latent_representations(
-                    dataloader, deterministic=True, max_samples=max_samples
-                )
+                    # Extract data
+                    paths = df['image_path'].tolist()
+                    genotypes = df['genotype'].tolist()
 
-                all_latents[(model_name, split)] = {
-                    'latents': latents,
-                    'paths': paths,
-                    'genotypes': genotypes
-                }
+                    # Extract latent dimensions
+                    latent_cols = [col for col in df.columns if col.startswith('latent_dim_')]
+                    latents = df[latent_cols].values
 
-                # Save latent representations to CSV
+                    all_latents[(model_name, split)] = {
+                        'latents': latents,
+                        'paths': paths,
+                        'genotypes': genotypes
+                    }
+
+                    print(f"    Loaded {len(df)} embeddings from existing file")
+
+                else:
+                    # Embeddings don't exist, extract them
+                    print(f"  Extracting latents for: {model_name} ({split})")
+
+                    # Get this model's dataloader for this split
+                    model_loaders = model_dataloaders.get(model_name)
+                    if model_loaders is None:
+                        print(f"  Warning: No dataloaders for model '{model_name}'")
+                        continue
+
+                    dataloader = model_loaders.get(split)
+                    if dataloader is None:
+                        print(f"  Warning: Model '{model_name}' has no dataloader for split '{split}'")
+                        continue
+
+                    latents, paths, genotypes = evaluator.extract_latent_representations(
+                        dataloader, deterministic=True, max_samples=max_samples
+                    )
+
+                    all_latents[(model_name, split)] = {
+                        'latents': latents,
+                        'paths': paths,
+                        'genotypes': genotypes
+                    }
+
+                # Save latent representations to evaluation output directory
                 csv_filename = f"{model_name}_latents_{split}.csv"
                 csv_path = self.dirs['latent'] / csv_filename
 

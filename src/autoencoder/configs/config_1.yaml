@@ -122,7 +122,7 @@ model:
   bottleneck_dim: 128
 
   # Attention mechanism configuration
-  use_attention: true
+  use_attention: false
   attention_type: "spatial"  # Options: "channel", "spatial", "both"
 
   # Whether the model is a VAE (variational autoencoder)
