@@ -96,3 +96,30 @@ convertPhenotypesToPLINK <- function(infile, phenotypes)
     relocate(FID, IID)
   write_tsv(plink, str_replace(infile, '.csv', '.txt'), quote = 'needed')
 }
+
+getBLUEs <- function(df, response, genotype, x, y, covariates_fixed = NULL, covariates_random = NULL)
+{
+  print(response)
+  formula <- str_c(response, ' ~ ', x, ' + ', y, ' + ', genotype)
+  if(!is.null(covariates_fixed))
+  {
+    for(f in covariates_fixed)
+    {
+      formula <- str_c(formula, ' + ', f)
+    }
+  }  
+  if(!is.null(covariates_random))
+  {
+    for(r in covariates_random)
+    {
+      formula <- str_c(formula, ' + (1|', f, ')')
+    }
+  }
+  model <- lm(as.formula(formula), data = df)
+  blues <- model$coefficients %>% 
+    as_tibble(rownames = 'genotype') %>% 
+    filter(!str_detect(genotype, x) & !str_detect(genotype, y) & !str_detect(genotype, 'Intercept')) %>% 
+    add_row(genotype = sort(df[[genotype]])[1], value = 0) %>%
+    rename('{response}' := value)
+  return(blues)
+}

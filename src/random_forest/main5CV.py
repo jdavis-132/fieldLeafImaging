@@ -30,7 +30,15 @@ values_df = pd.read_csv(args.values_data, low_memory=False)
 features_df = pd.read_csv(args.features_data, low_memory=False)
 
 # Perform left join (similar to R's left_join from tidyverse)
-data = values_df.merge(features_df, on=args.join_column, how='left')
+data = values_df.merge(features_df, on=args.join_column, how='left', suffixes=('', '_right'))
+
+# Handle column name conflicts from merge
+# If the group column has _right suffix, it means there was a conflict - keep the left version
+if args.group + '_right' in data.columns:
+    # The column from left dataframe (values_df) is already named correctly
+    # Just drop the right version
+    data = data.drop(columns=[args.group + '_right'])
+
 data = data.dropna(subset=[args.group, args.label])
 predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
