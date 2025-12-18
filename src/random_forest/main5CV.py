@@ -10,7 +10,9 @@ import argparse
 from pathlib import Path
 
 parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
-parser.add_argument("input_data", type=Path, help="Path to csv of input dataframe.")
+parser.add_argument("values_data", type=Path, help="Path to csv with values to predict (left dataframe).")
+parser.add_argument("features_data", type=Path, help="Path to csv with predictor features (right dataframe).")
+parser.add_argument("--join_column", type=str, required=True, help="Column name to join dataframes by.")
 parser.add_argument("--k", type=int, default=5, help="Number of folds.")
 parser.add_argument("--predictor_prefix", type=str, default='feature', help="Substring of predictor column names.")
 parser.add_argument("--label", type=str, default='score_average', help="Column containing target labels to predict.")
@@ -21,9 +23,14 @@ args = parser.parse_args()
 # Number of folds for CV
 k = args.k
 
-# Load your dataset
-# Adjust the file path or loading mechanism as needed
-data = pd.read_csv(args.input_data, low_memory=False)
+# Load datasets
+# Left dataframe: values to predict
+values_df = pd.read_csv(args.values_data, low_memory=False)
+# Right dataframe: predictor features
+features_df = pd.read_csv(args.features_data, low_memory=False)
+
+# Perform left join (similar to R's left_join from tidyverse)
+data = values_df.merge(features_df, on=args.join_column, how='left')
 data = data.dropna(subset=[args.group, args.label])
 predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
