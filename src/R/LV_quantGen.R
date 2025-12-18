@@ -31,8 +31,8 @@ if(phenotype_source == 'image')
 } else
 {
   df_embeddings <- df_embeddings %>% 
-    filter(across(contains(LV_prefix), ~!is.na(.x)))
-  row_id <- 'plotNumber'
+    filter(across(contains(LV_prefix), ~!is.na(.x))) %>% 
+    select(c(plotNumber, contains(LV_prefix)))
 }
 
 

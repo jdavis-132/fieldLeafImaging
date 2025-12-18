@@ -3,7 +3,7 @@ set -e  # Exit on error
 set -x  # Print commands (for debugging)
 
 # preprocess the data
-./src/autoencoder/preprocess_data.sh
+#./src/autoencoder/preprocess_data.sh
 
 # get DINOv2 embeddings
 python src/dinov2/extract_dinov2_features.py
