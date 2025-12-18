@@ -74,7 +74,7 @@ if(phenotype_source=='image')
   df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
   
   df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
-  
+  write_csv(df, str_c('output/', out_prefix, '_rf_predictors.csv'))
   response_vars <- c(lv_cols, pc_cols)
 }else
 {
