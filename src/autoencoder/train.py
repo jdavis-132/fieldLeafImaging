@@ -182,6 +182,33 @@ def initialize_model(
     return model, optimizer, loss_fn, scheduler
 
 
+def get_beta_for_annealing(
+    epoch: int,
+    max_epochs: int,
+    annealing_epochs: int = 50,
+    final_beta: float = 1.0
+) -> float:
+    """
+    Calculate beta value for KL annealing to prevent posterior collapse.
+
+    Linearly increases beta from 0 to final_beta over annealing_epochs.
+    This prevents the KL loss from dominating early training and forcing
+    all latents to zero.
+
+    Args:
+        epoch: Current epoch (0-indexed)
+        max_epochs: Total number of training epochs
+        annealing_epochs: Number of epochs to anneal over (default: 50)
+        final_beta: Target beta value (default: 1.0)
+
+    Returns:
+        Beta value for current epoch
+    """
+    if epoch < annealing_epochs:
+        return (epoch / annealing_epochs) * final_beta
+    return final_beta
+
+
 def train_epoch(
     model: nn.Module,
     dataloader: DataLoader,
@@ -189,7 +216,8 @@ def train_epoch(
     loss_fn: nn.Module,
     device: torch.device,
     is_vae: bool,
-    epoch: int
+    epoch: int,
+    config: Dict[str, Any]
 ) -> Dict[str, float]:
     """
     Run one training epoch.
@@ -202,6 +230,7 @@ def train_epoch(
         device: Device to use
         is_vae: Whether model is VAE
         epoch: Current epoch number
+        config: Configuration dictionary
 
     Returns:
         Dictionary with training metrics
@@ -210,6 +239,19 @@ def train_epoch(
     total_loss = 0.0
     total_recon_loss = 0.0
     total_kl_loss = 0.0
+
+    # Apply beta annealing for VAE to prevent posterior collapse
+    current_beta = 1.0
+    if is_vae and isinstance(loss_fn, VAELoss):
+        annealing_epochs = config.get('loss', {}).get('beta_annealing_epochs', 50)
+        final_beta = config.get('loss', {}).get('beta', 1.0)
+        current_beta = get_beta_for_annealing(
+            epoch - 1,  # epoch is 1-indexed in display
+            config['training']['num_epochs'],
+            annealing_epochs,
+            final_beta
+        )
+        loss_fn.beta = current_beta
 
     pbar = tqdm(dataloader, desc=f"Epoch {epoch} [Train]", leave=False)
 
@@ -252,18 +294,27 @@ def train_epoch(
         total_kl_loss += kl_loss
 
         # Update progress bar
-        pbar.set_postfix({'loss': f"{loss.item():.6f}"})
+        postfix = {'loss': f"{loss.item():.6f}"}
+        if is_vae and isinstance(loss_fn, VAELoss):
+            postfix['beta'] = f"{current_beta:.4f}"
+        pbar.set_postfix(postfix)
 
     # Calculate averages
     avg_loss = total_loss / len(dataloader)
     avg_recon = total_recon_loss / len(dataloader)
     avg_kl = total_kl_loss / len(dataloader)
 
-    return {
+    metrics = {
         'train_loss': avg_loss,
         'train_recon_loss': avg_recon,
         'train_kl_loss': avg_kl
     }
+
+    # Add beta to metrics for logging
+    if is_vae and isinstance(loss_fn, VAELoss):
+        metrics['beta'] = current_beta
+
+    return metrics
 
 
 def validate_epoch(
@@ -534,10 +585,10 @@ def initialize_logging(log_dir: Path, is_vae: bool):
     headers = ['epoch', 'train_loss', 'val_loss', 'learning_rate', 'epoch_time']
     if is_vae:
         headers.extend(['train_recon_loss', 'train_kl_loss',
-                       'val_recon_loss', 'val_kl_loss'])
+                       'val_recon_loss', 'val_kl_loss', 'beta'])
 
     with open(log_file, 'w', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=headers)
+        writer = csv.DictWriter(f, fieldnames=headers, extrasaction='ignore')
         writer.writeheader()
 
     return log_file
@@ -552,7 +603,7 @@ def log_epoch(log_file: Path, metrics: Dict[str, Any]):
         metrics: Dictionary with metrics to log
     """
     with open(log_file, 'a', newline='') as f:
-        writer = csv.DictWriter(f, fieldnames=metrics.keys())
+        writer = csv.DictWriter(f, fieldnames=metrics.keys(), extrasaction='ignore')
         writer.writerow(metrics)
 
 
@@ -645,7 +696,7 @@ def main(config_path: str, resume_path: Optional[str] = None):
 
             # Training
             train_metrics = train_epoch(
-                model, train_loader, optimizer, loss_fn, device, is_vae, epoch + 1
+                model, train_loader, optimizer, loss_fn, device, is_vae, epoch + 1, config
             )
 
             # Validation
@@ -691,6 +742,9 @@ def main(config_path: str, resume_path: Optional[str] = None):
                     'val_recon_loss': val_metrics['val_recon_loss'],
                     'val_kl_loss': val_metrics['val_kl_loss']
                 })
+                # Add beta if present (for VAE with annealing)
+                if 'beta' in train_metrics:
+                    log_metrics['beta'] = train_metrics['beta']
 
             log_epoch(log_file, log_metrics)
 
@@ -703,6 +757,8 @@ def main(config_path: str, resume_path: Optional[str] = None):
                       f"KL: {train_metrics['train_kl_loss']:.6f}")
                 print(f"  Val Recon:   {val_metrics['val_recon_loss']:.6f}, "
                       f"KL: {val_metrics['val_kl_loss']:.6f}")
+                if 'beta' in train_metrics:
+                    print(f"  Beta: {train_metrics['beta']:.4f}")
             print(f"  LR: {current_lr:.2e}, Time: {epoch_time:.1f}s")
 
             # Update scheduler

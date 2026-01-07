@@ -374,10 +374,24 @@ class ConvolutionalAutoencoder(nn.Module):
             self.fc_logvar = nn.Linear(self.encoded_dim, self.bottleneck_dim)
             # Decoder input from bottleneck
             self.fc_decode = nn.Linear(self.bottleneck_dim, self.encoded_dim)
+
+            # Initialize VAE-specific layers to prevent posterior collapse
+            nn.init.xavier_normal_(self.fc_mu.weight)
+            nn.init.constant_(self.fc_mu.bias, 0)
+            nn.init.xavier_normal_(self.fc_logvar.weight)
+            nn.init.constant_(self.fc_logvar.bias, 0)
+            nn.init.xavier_normal_(self.fc_decode.weight)
+            nn.init.constant_(self.fc_decode.bias, 0)
         else:
             # Standard AE: single bottleneck
             self.fc_encode = nn.Linear(self.encoded_dim, self.bottleneck_dim)
             self.fc_decode = nn.Linear(self.bottleneck_dim, self.encoded_dim)
+
+            # Initialize standard AE layers
+            nn.init.xavier_normal_(self.fc_encode.weight)
+            nn.init.constant_(self.fc_encode.bias, 0)
+            nn.init.xavier_normal_(self.fc_decode.weight)
+            nn.init.constant_(self.fc_decode.bias, 0)
 
         # Build decoder
         self.decoder = self._build_decoder()
@@ -527,7 +541,8 @@ class ConvolutionalAutoencoder(nn.Module):
             return mu, logvar
         else:
             z = self.fc_encode(x)  # (B, bottleneck_dim)
-            z = F.relu(z)
+            # NO activation function on latent code - it should be unbounded
+            # to allow full representational capacity
             return z
 
     def reparameterize(
@@ -541,12 +556,16 @@ class ConvolutionalAutoencoder(nn.Module):
         z = μ + σ * ε, where ε ~ N(0, I)
 
         Args:
-            mu: Mean of latent distribution (B, C, H, W)
-            logvar: Log variance of latent distribution (B, C, H, W)
+            mu: Mean of latent distribution (B, bottleneck_dim)
+            logvar: Log variance of latent distribution (B, bottleneck_dim)
 
         Returns:
-            Sampled latent vector
+            Sampled latent vector (B, bottleneck_dim)
         """
+        # Clamp logvar to prevent numerical instability
+        # Prevents std from becoming too small (underflow) or too large (overflow)
+        logvar = torch.clamp(logvar, min=-10, max=10)
+
         std = torch.exp(0.5 * logvar)
         eps = torch.randn_like(std)
         return mu + eps * std
