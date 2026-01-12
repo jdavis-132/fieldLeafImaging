@@ -27,11 +27,12 @@ printScreePlot <- function(prcomp_obj, nPCs = ncol(prcomp_obj$rotation))
 getPCScores <- function(data, cols, rank = 100)
 {
   mat <- data %>% 
-    select(cols) %>%
-    as.matrix()
+    select({{ cols }}) %>%
+    as.matrix() 
+  print(str_c('input matrix columns: ', dim(mat)[2]))
   
   metadata <- data %>% 
-    select(!cols)
+    select(!{{ cols }})
   
   pca <- prcomp(
     mat, retx = TRUE, scale = TRUE, rank. = rank)
@@ -123,4 +124,20 @@ getBLUEs <- function(df, response, genotype, x, y, covariates_fixed = NULL, cova
     add_row(genotype = sort(df[[genotype]])[1], value = 0) %>%
     rename('{response}' := value)
   return(blues)
+}
+
+getRFPredictability <- function(predictions_df, model_descriptor = NULL)
+{
+  spearman_r2 <- cor(predictions_df[['label']], predictions_df[['predicted']], use = 'complete.obs', method = 'spearman')^2
+  
+  plot <- ggplot(predictions_df, aes(label, predicted)) + 
+    geom_bin2d() + 
+    annotate(geom = 'text', x = 10, y=30, label = str_c('R^2==', spearman_r2), parse = TRUE) +
+    scale_fill_viridis(direction = -1) +
+    guides(fill = guide_colorbar(barwidth = 10)) +
+    labs(x = 'Observed Percent Diseased Area\n(ExG Threshold)', 
+         y = 'Predicted Percent Disease Area\n(RF)', 
+         title = model_descriptor) + 
+    theme_use 
+  print(plot)
 }

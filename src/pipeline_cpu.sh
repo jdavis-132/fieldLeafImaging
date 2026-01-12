@@ -10,13 +10,26 @@ set -x  # Print commands (for debugging)
 # run quantgen
 #Rscript src/R/LV_quantGen.R -image -output/dinov2_features.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -feature -dinov2 -0.01 data/SbDiv_Mangal2025_genotypes.txt > logs/dinov2_quantgen.Rout 2>&1
 # train and cross val RFs
-python src/random_forest/main5CV.py data/manual/scores_813.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix feature --output_prefix output/dinov2_features_813_
-python src/random_forest/main5CV.py data/manual/scores_813.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/dinov2_PC_813_
-python src/random_forest/main5CV.py data/manual/scores_828.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix feature --output_prefix output/dinov2_features_828_
-python src/random_forest/main5CV.py data/manual/scores_828.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/dinov2_PC_828_
+#python src/random_forest/main5CV.py data/manual/scores_813.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix feature --output_prefix output/dinov2_features_813_
+#python src/random_forest/main5CV.py data/manual/scores_813.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/dinov2_PC_813_
+#python src/random_forest/main5CV.py data/manual/scores_828.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix feature --output_prefix output/dinov2_features_828_
+#python src/random_forest/main5CV.py data/manual/scores_828.csv output/dinov2_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/dinov2_PC_828_
 
-Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3 -0.01 data/SbDiv_Mangal2025_genotypes.txt > logs/sam3_quantgen.Rout 2>&1
-python src/random_forest/main5CV.py data/manual/scores_813.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix embedding --output_prefix output/sam3_features_813_
-python src/random_forest/main5CV.py data/manual/scores_813.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/sam3_PC_813_
-python src/random_forest/main5CV.py data/manual/scores_828.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix embedding --output_prefix output/sam3_features_828_
-python src/random_forest/main5CV.py data/manual/scores_828.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/sam3_PC_828_
+#Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3 -0.01 data/SbDiv_Mangal2025_genotypes.txt > logs/sam3_quantgen.Rout 2>&1
+#python src/random_forest/main5CV.py data/manual/scores_813.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix embedding --output_prefix output/sam3_features_813_
+#python src/random_forest/main5CV.py data/manual/scores_813.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/sam3_PC_813_
+#python src/random_forest/main5CV.py data/manual/scores_828.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix embedding --output_prefix output/sam3_features_828_
+#python src/random_forest/main5CV.py data/manual/scores_828.csv output/sam3_rf_predictors.csv --join_column plotNumber --predictor_prefix PC --output_prefix output/sam3_PC_828_
+
+#python src/random_forest/main5CV.py output/ne2025_exg_percent_disease_area.csv output/dinov2_rf_predictors.csv --join_column image_name --predictor_prefix feature --output_prefix output/dinov2_features_pctd_
+#python src/random_forest/main5CV.py output/ne2025_exg_percent_disease_area.csv output/dinov2_rf_predictors.csv --join_column image_name --predictor_prefix PC --output_prefix output/dinov2_PC_pctd_
+#python src/random_forest/main5CV.py output/ne2025_exg_percent_disease_area.csv output/sam3_rf_predictors.csv --join_column image_name --predictor_prefix feature --output_prefix output/sam3_features_pctd_
+#python src/random_forest/main5CV.py output/ne2025_exg_percent_disease_area.csv output/sam3_rf_predictors.csv --join_column image_name --predictor_prefix PC --output_prefix output/sam3_PC_pctd_
+
+#Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_143328_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae1 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae1_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_205445_vae_lr0.001_bs32_vae/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae2 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae2_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_214228_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae3 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae3_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -image -models/autoencoder_20251217_155126_standard_lr0.001_bs32_l1_attention/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae4 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae4_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260108_183222_standard_lr0.001_bs32_l1_attention/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae5 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae5_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260109_205057_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae7 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae7_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260110_045517_standard_lr0.001_bs32_disease_weighted_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae8 -0.01 -data/SbDiv_Mangal2025_genotypes.txt > logs/ae8_quantgen.Rout 2>&1

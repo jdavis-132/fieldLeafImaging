@@ -60,7 +60,8 @@ for(lv in lv_cols)
 if(phenotype_source=='image')
 {
   # calculate PCs
-  pcs <- getPCScores(df_winsor, all_of(lv_cols))
+  pcs <- getPCScores(df_winsor, (matches(LV_prefix) & where(~is.numeric(.x) && 
+                                        var(.x, na.rm = TRUE) != 0)))
   
   # winsorize PCs
   df_winsorpc <- pcs %>%
@@ -86,7 +87,7 @@ if(phenotype_source=='image')
 vp <- tibble()
 for(v in response_vars)
 {
-  vp <- bind_rows(vp, partitionVariance3(df, v, ' ~ (1|genotype) + (1|range) + (1|row)'))
+  vp <- bind_rows(vp, partitionVariance3(df, v, v, ' ~ (1|genotype) + (1|range) + (1|row)'))
 }
 
 write_csv(vp, str_c('output/', out_prefix, '_vp.csv'))
@@ -113,7 +114,4 @@ convertPhenotypesToPLINK(str_c('output/', out_prefix, '_blues.csv'), response_va
 
 # split BLUEs dataframe for parallel GWAS
 splitDataFrame(blues, response_vars, str_c('output/', out_prefix, '_blues_'), 25)
-
-
-
 
