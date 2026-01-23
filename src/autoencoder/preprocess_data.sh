@@ -9,7 +9,7 @@ conda activate jupyterlab-debugger
 #python src/autoencoder/preprocess_data.py -i data/ne2025/device7 -o data/processed/ne2025/device7
 #python src/autoencoder/preprocess_data.py -i data/ne2025/device8 -o data/processed/ne2025/device8
 
-python src/autoencoder/preprocess_data.py -i data/aamu2025/block1 -o data/processed/aamu2025/block1 --start_step crop
+python src/autoencoder/preprocess_data.py -i data/aamu2025/block1 -o data/processed/aamu2025/block1
 python src/autoencoder/preprocess_data.py -i data/aamu2025/block2 -o data/processed/aamu2025/block2
 
 python src/autoencoder/preprocess_data.py -i data/fvsu2025/sap1 -o data/processed/fvsu2025/sap1

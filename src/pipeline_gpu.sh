@@ -10,7 +10,8 @@ set -x  # Print commands (for debugging)
 
 # get SAM3 embeddings 
 #python src/sam3/extract_embeddings.py "data/processed/ne2025/device*/cropped/*.png" -o output/sam3_embeddings.csv
-
+#python src/sam3/extract_embeddings.py "data/processed/aamu2025/block*/cropped/*.png" -o output/sam3_embeddings_aamu.csv
+python src/sam3/extract_embeddings.py "data/processed/fvsu2025/*ap*/cropped/*.png" -o output/sam3_embeddings_fvsu.csv
 # train models
 
 # Loop through each config file in src/autoencoder/configs/
@@ -93,4 +94,6 @@ set -x  # Print commands (for debugging)
 #echo "All models trained and evaluated!"
 
 #python src/autoencoder/train.py --config models/autoencoder_20260108_012555_standard_lr0.001_bs32_l1_attention/config.yaml --resume models/autoencoder_20260108_012555_standard_lr0.001_bs32_l1_attention/checkpoints/checkpoint_epoch_500.pt
-python src/autoencoder/train.py --config models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention/config.yaml --resume models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention/checkpoints/checkpoint_epoch_500.pt
+#python src/autoencoder/train.py --config models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention/config.yaml --resume models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention/checkpoints/checkpoint_epoch_500.pt
+#python src/autoencoder/extract_embeddings.py --model_dir models/autoencoder_20260108_012555_standard_lr0.001_bs32_l1_attention --output_dir models/autoencoder_20260108_012555_standard_lr0.001_bs32_l1_attention --splits train val test
+#python src/autoencoder/extract_embeddings.py --model_dir models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention --output_dir models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention --splits train val test

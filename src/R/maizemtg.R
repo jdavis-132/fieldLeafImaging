@@ -12,7 +12,7 @@ fi_pctd_features <- read_csv('output/dinov2_features_pctd_feature_importances_rf
 
 pred_obs <- ggplot(preds_pctd_features, aes(label, predicted)) + 
   geom_point() +
-  geom_smooth(method = 'lm') 
+  geom_smooth(method = 'lm')
 pred_obs
 
 preds_pctd_pcs <- read_csv('output/dinov2_PC_pctd_predictions_rf.csv')

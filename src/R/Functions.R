@@ -131,13 +131,32 @@ getRFPredictability <- function(predictions_df, model_descriptor = NULL)
   spearman_r2 <- cor(predictions_df[['label']], predictions_df[['predicted']], use = 'complete.obs', method = 'spearman')^2
   
   plot <- ggplot(predictions_df, aes(label, predicted)) + 
-    geom_bin2d() + 
-    annotate(geom = 'text', x = 10, y=30, label = str_c('R^2==', spearman_r2), parse = TRUE) +
-    scale_fill_viridis(direction = -1) +
-    guides(fill = guide_colorbar(barwidth = 10)) +
+    # geom_bin2d() + 
+    geom_point() +
+    annotate(geom = 'text', x = 10, y=35, label = str_c('R^2==', spearman_r2), parse = TRUE) +
+    # scale_fill_viridis(direction = -1) +
+    # guides(fill = guide_colorbar(barwidth = 10)) +
     labs(x = 'Observed Percent Diseased Area\n(ExG Threshold)', 
          y = 'Predicted Percent Disease Area\n(RF)', 
          title = model_descriptor) + 
     theme_use 
   print(plot)
+  return(plot)
 }
+
+summariseSignals_PANICLE <- function(path)
+{
+  files <- Sys.glob(path)
+  signals <- tibble()
+  for(f in files)
+  {
+    df <- read_csv(f,
+                   col_types = 'ccnccnnnc', 
+                   col_names = c('SNP', 'CHROM', 'POS', 'REF', 'ALT', 'MAF', 'pval', 'effect', 'method'),
+                   skip = 1) %>% 
+      mutate(filename = f)
+    signals <- bind_rows(signals, df)
+  }
+  return(signals)
+}
+
