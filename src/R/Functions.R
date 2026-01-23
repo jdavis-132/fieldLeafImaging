@@ -27,11 +27,12 @@ printScreePlot <- function(prcomp_obj, nPCs = ncol(prcomp_obj$rotation))
 getPCScores <- function(data, cols, rank = 100)
 {
   mat <- data %>% 
-    select(cols) %>%
-    as.matrix()
+    select({{ cols }}) %>%
+    as.matrix() 
+  print(str_c('input matrix columns: ', dim(mat)[2]))
   
   metadata <- data %>% 
-    select(!cols)
+    select(!{{ cols }})
   
   pca <- prcomp(
     mat, retx = TRUE, scale = TRUE, rank. = rank)
@@ -96,3 +97,66 @@ convertPhenotypesToPLINK <- function(infile, phenotypes)
     relocate(FID, IID)
   write_tsv(plink, str_replace(infile, '.csv', '.txt'), quote = 'needed')
 }
+
+getBLUEs <- function(df, response, genotype, x, y, covariates_fixed = NULL, covariates_random = NULL)
+{
+  print(response)
+  formula <- str_c(response, ' ~ ', x, ' + ', y, ' + ', genotype)
+  if(!is.null(covariates_fixed))
+  {
+    for(f in covariates_fixed)
+    {
+      formula <- str_c(formula, ' + ', f)
+    }
+  }  
+  if(!is.null(covariates_random))
+  {
+    for(r in covariates_random)
+    {
+      formula <- str_c(formula, ' + (1|', f, ')')
+    }
+  }
+  model <- lm(as.formula(formula), data = df)
+  blues <- model$coefficients %>% 
+    as_tibble(rownames = 'genotype') %>% 
+    filter(!str_detect(genotype, x) & !str_detect(genotype, y) & !str_detect(genotype, 'Intercept')) %>% 
+    mutate(genotype = str_remove(genotype, 'genotype')) %>% 
+    add_row(genotype = sort(df[[genotype]])[1], value = 0) %>%
+    rename('{response}' := value)
+  return(blues)
+}
+
+getRFPredictability <- function(predictions_df, model_descriptor = NULL)
+{
+  spearman_r2 <- cor(predictions_df[['label']], predictions_df[['predicted']], use = 'complete.obs', method = 'spearman')^2
+  
+  plot <- ggplot(predictions_df, aes(label, predicted)) + 
+    # geom_bin2d() + 
+    geom_point() +
+    annotate(geom = 'text', x = 10, y=35, label = str_c('R^2==', spearman_r2), parse = TRUE) +
+    # scale_fill_viridis(direction = -1) +
+    # guides(fill = guide_colorbar(barwidth = 10)) +
+    labs(x = 'Observed Percent Diseased Area\n(ExG Threshold)', 
+         y = 'Predicted Percent Disease Area\n(RF)', 
+         title = model_descriptor) + 
+    theme_use 
+  print(plot)
+  return(plot)
+}
+
+summariseSignals_PANICLE <- function(path)
+{
+  files <- Sys.glob(path)
+  signals <- tibble()
+  for(f in files)
+  {
+    df <- read_csv(f,
+                   col_types = 'ccnccnnnc', 
+                   col_names = c('SNP', 'CHROM', 'POS', 'REF', 'ALT', 'MAF', 'pval', 'effect', 'method'),
+                   skip = 1) %>% 
+      mutate(filename = f)
+    signals <- bind_rows(signals, df)
+  }
+  return(signals)
+}
+

@@ -35,3 +35,18 @@ pip-delete-this-directory.txt
 src/vae/logs
 src/disease_autoencoder/__pycache__/*
 src/disease_autoencoder_cropped/__pycache__/*
+
+# Large files (>100MB) - excluded from git
+output/sam3_features_pmap.csv
+output/sam3_PCs_pmap.csv
+output/diseased_reconstructions/comparisons.tar.gz
+output/sam3_embeddings_metadata.csv
+output/sam3_rf_predictors.csv
+output/sam3_embeddings_fvsu.csv
+output/sam3_embeddings.csv
+output/dinov2_rf_predictors.csv
+output/dinov2_features_metadata.csv
+output/ae7_rf_predictors.csv
+*.bed
+*.grm.bin
+*.grm.details
