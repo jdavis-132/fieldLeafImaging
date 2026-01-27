@@ -1,6 +1,7 @@
 library(tidyverse)
 source('src/R/Functions.R')
 library(paletteer)
+library(ggcorrplot)
 source('../parallelgwas/manhattanPlot.R')
 preds_pctd_features <- read_csv('output/sam3_embedding_pctd_predictions_rf.csv')
 spearman_r2 <- cor(preds_pctd_features[['label']], preds_pctd_features[['predicted']], use = 'complete.obs', method = 'spearman')^2
@@ -50,16 +51,17 @@ embeddings <- read_csv('output/sam3_rf_predictors.csv')
 high_fi_embeddings <- embeddings %>% 
   select(any_of(high_fi_features)) %>% 
   as.matrix()
-cor_mat  <- cor(high_fi_embeddings) %>% 
-  as_tibble(rownames = 'embedding_y') %>% 
-  pivot_longer(!embedding_y, values_to = 'cor', names_to = 'embedding_x')
 
-cor_plot <- ggplot(cor_mat, aes(embedding_x, embedding_y, fill = cor)) + 
-  geom_tile() + 
-  scale_fill_paletteer_c("scico::vik", direction = -1) + 
-  theme_use + 
+cor_mat <- cor(high_fi_embeddings)
+p <- ggcorrplot(cor_mat, 
+           type = 'upper', 
+           ggtheme = theme_use, 
+           title = 'SAM3 Top 30 Embeddings',
+           legend.title = 'Pearson Correlation Coefficient', 
+           outline.color = 'transparent', 
+           hc.order = TRUE) + 
   theme(axis.text.x = element_text(angle = 90))
-cor_plot
+print(p)
 
 feature_blues <- read_csv('output/sam3_blues.csv')
 
