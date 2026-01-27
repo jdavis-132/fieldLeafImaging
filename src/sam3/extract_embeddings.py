@@ -5,8 +5,8 @@ Extract pooled image embeddings from SAM3 for all images in the dataset.
 This script:
 1. Loads SAM3 model and uses its image encoder
 2. Extracts embeddings for each image
-3. Applies global average pooling to get a single vector per image
-4. Saves results to a CSV file
+3. Applies global average pooling (mean) and standard deviation across spatial dimensions
+4. Saves results to a CSV file with both mean and std embeddings
 
 Author: Generated for fieldLeafImaging project
 Date: 2025
@@ -28,7 +28,7 @@ warnings.filterwarnings('ignore')
 
 
 class SAM3EmbeddingExtractor:
-    """Extract pooled embeddings from SAM3 image encoder."""
+    """Extract pooled embeddings (mean and std) from SAM3 image encoder."""
 
     def __init__(self, model_path="src/sam3", device="cuda"):
         """
@@ -110,7 +110,9 @@ class SAM3EmbeddingExtractor:
             image (PIL.Image): RGB image
 
         Returns:
-            numpy.ndarray: Pooled embedding vector (1D)
+            tuple: (mean_embedding, std_embedding) - both are 1D numpy arrays
+                   mean_embedding: Global average pooling across spatial dimensions
+                   std_embedding: Standard deviation across spatial dimensions
         """
         with torch.no_grad():
             # Process image - SAM3 uses text prompts, but we can use empty/dummy text
@@ -135,29 +137,36 @@ class SAM3EmbeddingExtractor:
                 vision_outputs = self.model.vision_encoder(pixel_values, output_hidden_states=True)
                 features = vision_outputs.last_hidden_state
 
-            # Apply global average pooling across spatial dimensions
+            # Apply global average pooling and std across spatial dimensions
             # Features shape is typically [B, H*W, C] or [B, C, H, W]
             if features.dim() == 4:
                 # Shape: [B, C, H, W] -> [B, C]
-                pooled = features.mean(dim=[2, 3])
+                pooled_mean = features.mean(dim=[2, 3])
+                pooled_std = features.std(dim=[2, 3])
             elif features.dim() == 3:
                 # Shape: [B, N, C] -> [B, C] (average over sequence length N)
-                pooled = features.mean(dim=1)
+                pooled_mean = features.mean(dim=1)
+                pooled_std = features.std(dim=1)
             elif features.dim() == 2:
-                # Already [B, C]
-                pooled = features
+                # Already [B, C] - no spatial dimensions to compute std over
+                pooled_mean = features
+                pooled_std = torch.zeros_like(features)
             else:
                 # Unexpected shape, flatten and hope for the best
-                pooled = features.flatten(1)
+                pooled_mean = features.flatten(1)
+                pooled_std = torch.zeros_like(pooled_mean)
 
             # Convert to numpy and ensure 1D
-            embedding = pooled.squeeze().cpu().numpy()
+            embedding_mean = pooled_mean.squeeze().cpu().numpy()
+            embedding_std = pooled_std.squeeze().cpu().numpy()
 
-            # Ensure it's 1D
-            if embedding.ndim > 1:
-                embedding = embedding.flatten()
+            # Ensure they're 1D
+            if embedding_mean.ndim > 1:
+                embedding_mean = embedding_mean.flatten()
+            if embedding_std.ndim > 1:
+                embedding_std = embedding_std.flatten()
 
-            return embedding
+            return embedding_mean, embedding_std
 
     def extract_embeddings_batch(self, image_paths, batch_size=1):
         """
@@ -171,9 +180,10 @@ class SAM3EmbeddingExtractor:
             batch_size (int): Batch size (kept at 1 for SAM3 compatibility)
 
         Returns:
-            tuple: (embeddings_list, metadata_list, failed_images)
+            tuple: (embeddings_mean_list, embeddings_std_list, metadata_list, failed_images)
         """
-        embeddings_list = []
+        embeddings_mean_list = []
+        embeddings_std_list = []
         metadata_list = []
         failed_images = []
 
@@ -188,15 +198,16 @@ class SAM3EmbeddingExtractor:
                 continue
 
             try:
-                # Extract embedding
-                embedding = self.extract_embedding(image)
+                # Extract embedding (mean and std)
+                embedding_mean, embedding_std = self.extract_embedding(image)
 
                 # Store results
-                embeddings_list.append(embedding)
+                embeddings_mean_list.append(embedding_mean)
+                embeddings_std_list.append(embedding_std)
                 metadata_list.append(image_path)
 
                 # Clear CUDA cache periodically to avoid memory issues
-                if self.device == "cuda" and len(embeddings_list) % 100 == 0:
+                if self.device == "cuda" and len(embeddings_mean_list) % 100 == 0:
                     torch.cuda.empty_cache()
 
             except Exception as e:
@@ -204,7 +215,7 @@ class SAM3EmbeddingExtractor:
                 failed_images.append(image_path)
                 continue
 
-        return embeddings_list, metadata_list, failed_images
+        return embeddings_mean_list, embeddings_std_list, metadata_list, failed_images
 
 
 def find_images(base_pattern):
@@ -235,29 +246,41 @@ def find_images(base_pattern):
     return sorted(image_paths)
 
 
-def save_embeddings_to_csv(embeddings_list, metadata_list, output_path):
+def save_embeddings_to_csv(embeddings_mean_list, embeddings_std_list, metadata_list, output_path):
     """
-    Save embeddings and metadata to CSV file.
+    Save embeddings (mean and std) and metadata to CSV file.
 
     Args:
-        embeddings_list (list): List of embedding vectors
+        embeddings_mean_list (list): List of mean embedding vectors
+        embeddings_std_list (list): List of std embedding vectors
         metadata_list (list): List of image paths
         output_path (str): Output CSV file path
     """
     print(f"\n💾 Saving embeddings to CSV: {output_path}")
 
-    # Convert embeddings to numpy array
-    embeddings_array = np.array(embeddings_list)
+    # Convert embeddings to numpy arrays
+    embeddings_mean_array = np.array(embeddings_mean_list)
+    embeddings_std_array = np.array(embeddings_std_list)
 
-    print(f"   Embeddings shape: {embeddings_array.shape}")
+    embedding_dim = embeddings_mean_array.shape[1]
+
+    print(f"   Mean embeddings shape: {embeddings_mean_array.shape}")
+    print(f"   Std embeddings shape: {embeddings_std_array.shape}")
     print(f"   Number of images: {len(metadata_list)}")
-    print(f"   Embedding dimensions: {embeddings_array.shape[1]}")
+    print(f"   Embedding dimensions: {embedding_dim}")
 
-    # Create column names
-    embedding_columns = [f"embedding_{i}" for i in range(embeddings_array.shape[1])]
+    # Create column names for mean and std
+    mean_columns = [f"embedding_mean_{i}" for i in range(embedding_dim)]
+    std_columns = [f"embedding_std_{i}" for i in range(embedding_dim)]
 
-    # Create DataFrame
-    df = pd.DataFrame(embeddings_array, columns=embedding_columns)
+    # Create DataFrame with mean embeddings
+    df = pd.DataFrame(embeddings_mean_array, columns=mean_columns)
+
+    # Add std embeddings
+    df_std = pd.DataFrame(embeddings_std_array, columns=std_columns)
+    df = pd.concat([df, df_std], axis=1)
+
+    # Insert image path as first column
     df.insert(0, 'image_path', metadata_list)
 
     # Save to CSV
@@ -265,15 +288,16 @@ def save_embeddings_to_csv(embeddings_list, metadata_list, output_path):
 
     print(f"✅ Saved {len(df)} embeddings to {output_path}")
     print(f"   CSV shape: {df.shape}")
-    print(f"   Columns: image_path + {len(embedding_columns)} embedding dimensions")
+    print(f"   Columns: image_path + {embedding_dim} mean dimensions + {embedding_dim} std dimensions")
 
 
-def print_summary(embeddings_list, failed_images, embedding_dim=None):
+def print_summary(embeddings_mean_list, embeddings_std_list, failed_images, embedding_dim=None):
     """
     Print summary statistics.
 
     Args:
-        embeddings_list (list): List of embeddings
+        embeddings_mean_list (list): List of mean embeddings
+        embeddings_std_list (list): List of std embeddings
         failed_images (list): List of failed image paths
         embedding_dim (int, optional): Embedding dimension
     """
@@ -281,22 +305,28 @@ def print_summary(embeddings_list, failed_images, embedding_dim=None):
     print("📊 SUMMARY STATISTICS")
     print("="*70)
 
-    total_images = len(embeddings_list) + len(failed_images)
-    success_rate = (len(embeddings_list) / total_images * 100) if total_images > 0 else 0
+    total_images = len(embeddings_mean_list) + len(failed_images)
+    success_rate = (len(embeddings_mean_list) / total_images * 100) if total_images > 0 else 0
 
     print(f"Total images processed: {total_images}")
-    print(f"Successfully extracted: {len(embeddings_list)}")
+    print(f"Successfully extracted: {len(embeddings_mean_list)}")
     print(f"Failed extractions: {len(failed_images)}")
     print(f"Success rate: {success_rate:.2f}%")
 
-    if embeddings_list:
-        embeddings_array = np.array(embeddings_list)
-        print(f"\nEmbedding dimensions: {embeddings_array.shape[1]}")
-        print(f"Embedding statistics:")
-        print(f"  Mean: {embeddings_array.mean():.4f}")
-        print(f"  Std: {embeddings_array.std():.4f}")
-        print(f"  Min: {embeddings_array.min():.4f}")
-        print(f"  Max: {embeddings_array.max():.4f}")
+    if embeddings_mean_list:
+        embeddings_mean_array = np.array(embeddings_mean_list)
+        embeddings_std_array = np.array(embeddings_std_list)
+        print(f"\nEmbedding dimensions: {embeddings_mean_array.shape[1]}")
+        print(f"Mean embedding statistics:")
+        print(f"  Mean: {embeddings_mean_array.mean():.4f}")
+        print(f"  Std: {embeddings_mean_array.std():.4f}")
+        print(f"  Min: {embeddings_mean_array.min():.4f}")
+        print(f"  Max: {embeddings_mean_array.max():.4f}")
+        print(f"Std embedding statistics:")
+        print(f"  Mean: {embeddings_std_array.mean():.4f}")
+        print(f"  Std: {embeddings_std_array.std():.4f}")
+        print(f"  Min: {embeddings_std_array.min():.4f}")
+        print(f"  Max: {embeddings_std_array.max():.4f}")
 
     if failed_images:
         print(f"\n⚠️  Failed images:")
@@ -384,20 +414,20 @@ Examples:
         sys.exit(1)
 
     # Extract embeddings
-    embeddings_list, metadata_list, failed_images = extractor.extract_embeddings_batch(
+    embeddings_mean_list, embeddings_std_list, metadata_list, failed_images = extractor.extract_embeddings_batch(
         image_paths,
         batch_size=1
     )
 
-    if not embeddings_list:
+    if not embeddings_mean_list:
         print("❌ No embeddings extracted! Exiting.")
         sys.exit(1)
 
     # Save to CSV
-    save_embeddings_to_csv(embeddings_list, metadata_list, args.output)
+    save_embeddings_to_csv(embeddings_mean_list, embeddings_std_list, metadata_list, args.output)
 
     # Print summary
-    print_summary(embeddings_list, failed_images)
+    print_summary(embeddings_mean_list, embeddings_std_list, failed_images)
 
     print("\n✅ Embedding extraction complete!")
     print(f"📁 Output saved to: {os.path.abspath(args.output)}")

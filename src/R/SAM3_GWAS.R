@@ -102,7 +102,7 @@ plotManhattan(rmip_0.1features, RMIP, multitrait = TRUE, trait = feature, thresh
               colors = paletteer_d('fishualize::Chlorurus_microrhinos', n_features), species = 'sorghum')
 
 
-
+panicle_mlm_rnaseq <- summariseSignals_PANICLE('output/gwas/sam3/mlm_rnaseq/GWAS_*_all_results.csv')
 
 # fi_pctd_PC <- read_csv('output/sam3_PC_pctd_feature_importances_rf.csv')[, 2:101] %>% 
 #   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
