@@ -14,10 +14,10 @@ field_index <- str_remove(args[length(args)-4], fixed('-'))
 LV_prefix <- str_remove(args[length(args)-3], fixed('-'))
 out_prefix <- str_remove(args[length(args) - 2], fixed('-'))
 winsor_strength <- as.numeric(str_remove(args[length(args) - 1], fixed('-')))
-vcf_genotypes <- str_remove(args[length(args)], fixed('-'))
+genotype_alignment <- str_remove(args[length(args)], fixed('-'))
 
-marker_genotypes <- read_tsv(vcf_genotypes, col_names = TRUE)
-marker_genotypes <- colnames(marker_genotypes)[10:ncol(marker_genotypes)]
+genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'))
+
 # join dataframes
 df_embeddings <- read_csv(embeddings)
 if(phenotype_source == 'image')
@@ -37,14 +37,14 @@ if(phenotype_source == 'image')
 
 
 df_field_index <- read_csv(field_index) %>% 
-  mutate(genotype = str_remove_all(genotype, ' ')) %>% 
-  mutate(genotype = case_when(genotype == 'PI655991' ~ "BTx378", 
-                              genotype == 'PI655990' ~ 'Comb7078', 
-                              genotype == 'PI655977' ~ "RTAM2566", 
-                              genotype == 'PI655978' ~ "RTX2737",
-                              genotype == 'PI542718' ~ "SanChiSan",
-                              genotype == 'PI656023' ~ "Segaolane",  
-                              .default = genotype))
+  mutate(genotype = str_remove_all(genotype, ' '))
+  # mutate(genotype = case_when(genotype == 'PI655991' ~ "BTx378", 
+  #                             genotype == 'PI655990' ~ 'Comb7078', 
+  #                             genotype == 'PI655977' ~ "RTAM2566", 
+  #                             genotype == 'PI655978' ~ "RTX2737",
+  #                             genotype == 'PI542718' ~ "SanChiSan",
+  #                             genotype == 'PI656023' ~ "Segaolane",  
+  #                             .default = genotype))
 
 df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
@@ -104,7 +104,11 @@ if(length(response_vars) > 1)
                        join_by(genotype))
   }
 }
-blues <- filter(blues, genotype %in% marker_genotypes)
+blues <- blues %>% 
+  right_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
+  filter(!is.na(genotype_markers)) %>% 
+  select(!c(genotype, genotype_idx)) %>% 
+  rename(genotype = genotype_markers)
 write_csv(blues, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)

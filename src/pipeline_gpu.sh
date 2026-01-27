@@ -9,7 +9,7 @@ set -x  # Print commands (for debugging)
 #python src/dinov2/extract_dinov2_features.py
 
 # get SAM3 embeddings 
-python src/sam3/extract_embeddings.py "data/processed/ne2025/device*/cropped/*.png" -o output/sam3_embeddings.csv
+#python src/sam3/extract_embeddings.py "data/processed/ne2025/device*/cropped/*.png" -o output/sam3_embeddings.csv
 python src/sam3/extract_embeddings.py "data/processed/aamu2025/block*/cropped/*.png" -o output/sam3_embeddings_aamu.csv
 python src/sam3/extract_embeddings.py "data/processed/fvsu2025/*ap*/cropped/*.png" -o output/sam3_embeddings_fvsu.csv
 # train models
