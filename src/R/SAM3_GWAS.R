@@ -45,6 +45,22 @@ high_fi <- fi_pctd_features %>%
 high_fi <- high_fi[1:30, ]
 
 high_fi_features <- str_c('embedding_', high_fi$feature)
+
+embeddings <- read_csv('output/sam3_rf_predictors.csv')
+high_fi_embeddings <- embeddings %>% 
+  select(any_of(high_fi_features)) %>% 
+  as.matrix()
+cor_mat  <- cor(high_fi_embeddings) %>% 
+  as_tibble(rownames = 'embedding_y') %>% 
+  pivot_longer(!embedding_y, values_to = 'cor', names_to = 'embedding_x')
+
+cor_plot <- ggplot(cor_mat, aes(embedding_x, embedding_y, fill = cor)) + 
+  geom_tile() + 
+  scale_fill_paletteer_c("scico::vik", direction = -1) + 
+  theme_use + 
+  theme(axis.text.x = element_text(angle = 90))
+cor_plot
+
 feature_blues <- read_csv('output/sam3_blues.csv')
 
 for(feature in high_fi_features)
