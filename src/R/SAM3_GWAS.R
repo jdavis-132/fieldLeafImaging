@@ -79,7 +79,7 @@ for(feature in high_fi_features)
 all_farmcpu_hits <- read_csv('output/sam3_high_fi_allfarmcpuhits.csv')
 
 rmip <- all_farmcpu_hits %>% 
-  group_by(SNP, CHROM, POS, REF, ALT, MAF, feature) %>% 
+  group_by(SNP, CHROM, POS, feature) %>% 
   summarise(RMIP = n()/100, 
             min_p = min(pval, na.rm = TRUE), 
             mean_effect = mean(effect, na.rm = TRUE))
@@ -99,7 +99,7 @@ rmip_0.1features <- rmip %>%
 
 plotManhattan(rmip_0.1features, RMIP, multitrait = TRUE, trait = feature, threshold = 0.2, 
               main = 'SAM3 Top 30 Embeddings\nFarmCPU Resampling (PANICLE)', 
-              colors = paletteer_d('fishualize::Chlorurus_microrhinos', n_features), species = 'sorghum')
+              species = 'sorghum')
 
 
 panicle_mlm_rnaseq <- summariseSignals_PANICLE('output/gwas/sam3/mlm_rnaseq/GWAS_*_all_results.csv')
