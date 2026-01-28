@@ -16,7 +16,9 @@ out_prefix <- str_remove(args[length(args) - 2], fixed('-'))
 winsor_strength <- as.numeric(str_remove(args[length(args) - 1], fixed('-')))
 genotype_alignment <- str_remove(args[length(args)], fixed('-'))
 
-genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'))
+genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>% 
+  distinct()
+
 
 # join dataframes
 df_embeddings <- read_csv(embeddings)
@@ -107,7 +109,7 @@ if(length(response_vars) > 1)
 blues <- blues %>% 
   right_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
   filter(!is.na(genotype_markers)) %>% 
-  select(!c(genotype, genotype_idx)) %>% 
+  select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
 write_csv(blues, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
