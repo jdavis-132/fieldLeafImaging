@@ -31,14 +31,14 @@ fi_pctd_features <- read_csv('output/sam3_embedding_pctd_feature_importances_rf.
   mutate(feature = as.numeric(feature))
 
 fi_plot <- ggplot(fi_pctd_features, aes(avg_fi)) + 
-  geom_histogram(fill = paletteer_d('fishualize::Chlorurus_microrhinos', 4)[4]) +
+  geom_histogram(fill = paletteer_d('MetBrewer::Archambault', 6)[3]) +
   labs(x = 'Average Feature Importance (RF 5-fold CV)', 
        y = 'Number of SAM3 Embededings') +
   scale_x_continuous(expand = c(0, 0)) + 
   scale_y_continuous(expand = c(0, 0)) +
   theme_use
 fi_plot
-ggsave('output/FI_distribution.png', dpi = 2000, plot = fi_plot)
+ggsave('output/FI_distribution.png', dpi = 2000, plot = fi_plot, height = 2.75, width = 5)
 
 
 high_fi <- fi_pctd_features %>% 
@@ -115,56 +115,15 @@ rmip_0.1features <- rmip %>%
   mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
            as.numeric())
 
-plotManhattan(rmip_0.1features, RMIP, multitrait = TRUE, trait = feature, threshold = 0.2, 
-              main = 'SAM3 Top 30 Embeddings\nFarmCPU Resampling (PANICLE)', 
+rmip_selected <- rmip %>% 
+  filter(feature %in% c(560, 986, 586, 344, 174, 122)) %>% 
+  ungroup() %>% 
+  mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
+           as.numeric())
+
+plotManhattan(rmip_selected, RMIP, multitrait = TRUE, trait = feature, threshold = 0.2, 
+              colors = paletteer_d('MetBrewer::Archambault', 6),
               species = 'sorghum')
+ggsave('output/selected_embeddings_farmcpu.png', width = 5, height = 2.5, dpi = 1000, 
+       bg = 'transparent')
 
-
-panicle_mlm_rnaseq <- summariseSignals_PANICLE('output/gwas/sam3/mlm_rnaseq/GWAS_*_all_results.csv')
-
-# fi_pctd_PC <- read_csv('output/sam3_PC_pctd_feature_importances_rf.csv')[, 2:101] %>% 
-#   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
-#   group_by(feature) %>%
-#   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
-#   arrange(desc(avg_fi)) %>% 
-#   mutate(feature = as.numeric(feature))
-# 
-# eff_markers <- 49957
-# thresh <- 0.05/eff_markers
-# thresh_log10 <- -1*log10(thresh)
-# 
-# sam3_pmap_features <- summariseSignals('output/gwas/sam3/embedding*')
-# write_csv(sam3_pmap_features, 'output/sam3_features_pmap.csv')
-# sam3_pmap_features <- read_csv('output/sam3_features_pmap.csv')
-# sam3_signals_features <- sam3_pmap_features[sam3_pmap_features$`p-val` < thresh, ]
-# write_csv(sam3_signals_features, 'output/sam3_features_signals.csv')
-# sam3_signals_features <- sam3_signals_features %>% 
-#   group_by(filename) %>% 
-#   mutate(feature = str_remove(filename, 'output/gwas/sam3/embedding_') %>% 
-#            str_remove('.MLM.csv') %>% 
-#            as.numeric(), 
-#          CHROM = as.numeric(CHROM)) %>% 
-#   rename(pval = `p-val`)
-# 
-# high_fi_signals <- filter(sam3_signals_features, feature %in% high_fi$feature)
-# high_fi_pmap <- sam3_pmap_features %>% 
-#   rename(pval = `p-val`) %>% 
-#   group_by(filename) %>% 
-#   mutate(feature = str_remove(filename, 'output/gwas/sam3/embedding_') %>% 
-#            str_remove('.MLM.csv') %>% 
-#            as.numeric(), 
-#          CHROM = as.numeric(CHROM)) %>% 
-#   filter(feature %in% high_fi_signals$feature)
-# manhattan <- plotManhattan(high_fi_pmap, pval, multitrait = TRUE, trait = feature, resampling = FALSE, main = 'Significant GWAS Signals\nTop 30 SAM3 Features by FI', species = 'sorghum', threshold = thresh_log10)
-# 
-# sam3_pmap_PC <- summariseSignals('output/gwas/sam3/sam3_PC*')
-# sam3_pmap_PC <- sam3_pmap_PC %>% 
-#   group_by(filename) %>% 
-#   mutate(feature = str_remove(filename, 'output/gwas/sam3/sam3_PC') %>% 
-#            str_remove('.MLM.csv') %>% 
-#            as.numeric(), 
-#          CHROM = as.numeric(CHROM)) %>% 
-#   rename(pval = `p-val`)
-# write_csv(sam3_pmap_PC, 'output/sam3_PCs_pmap.csv')
-# sam3_signals_PC <- sam3_pmap_PC[sam3_pmap_PC$`p-val` < thresh, ]
-# write_csv(sam3_signals_PC, 'output/sam3_PCs_signals.csv')
