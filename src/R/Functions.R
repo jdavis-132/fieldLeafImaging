@@ -47,8 +47,8 @@ winsorize <- function(data, col, lower_prob, upper_prob)
   lower <- quantile(data[[col]], probs = c(lower_prob), na.rm = TRUE)
   upper <- quantile(data[[col]], probs = c(upper_prob), na.rm = TRUE)
   df <- data
-  df[df[[col]] <= lower, col] <- lower
-  df[df[[col]] >= upper, col] <- upper
+  df[which(df[[col]] <= lower), col] <- lower
+  df[which(df[[col]] >= upper), col] <- upper
   return(df)
 }
 
