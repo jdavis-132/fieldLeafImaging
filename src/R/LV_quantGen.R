@@ -8,26 +8,31 @@ print(getwd())
 # phenotype_source should either be image or manual
 # if image, will look for image_path in join but if manual, plotNumber
 args <- commandArgs(trailingOnly = FALSE)
-phenotype_source <- str_remove(args[length(args)-6], fixed('-'))
-embeddings <- str_remove(args[length(args)-5], fixed('-'))
-field_index <- str_remove(args[length(args)-4], fixed('-'))
-LV_prefix <- str_remove(args[length(args)-3], fixed('-'))
-out_prefix <- str_remove(args[length(args) - 2], fixed('-'))
-winsor_strength <- as.numeric(str_remove(args[length(args) - 1], fixed('-')))
-genotype_alignment <- str_remove(args[length(args)], fixed('-'))
+phenotype_source <- str_remove(args[length(args) - 7], fixed('-'))
+embeddings <- str_remove(args[length(args) - 6], fixed('-'))
+field_index <- str_remove(args[length(args) - 5], fixed('-'))
+LV_prefix <- str_remove(args[length(args) - 4], fixed('-'))
+out_prefix <- str_remove(args[length(args) - 3], fixed('-'))
+winsor_strength <- as.numeric(str_remove(args[length(args) - 2], fixed('-')))
+genotype_alignment <- str_remove(args[length(args) - 1], fixed('-'))
+images_keep <- str_remove(args[length(args)], fixed('-')) # file with list of images to keep, excluding end of basename beginning from '-05_00_[tag].png, one per line
 
 genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>% 
   distinct()
-
 
 # join dataframes
 df_embeddings <- read_csv(embeddings)
 if(phenotype_source == 'image')
 {
+  images_keep_list <- read_tsv(images_keep, col_names = c('image_id'), skip = 1)
   df_embeddings <- df_embeddings %>% 
-    dplyr::mutate(plotNumber = basename(image_path) %>% 
+    mutate(plotNumber = basename(image_path) %>% 
                     str_split_i('_', 1) %>% 
-                    as.numeric()) %>% 
+                    as.numeric(), 
+           image_id = basename(image_path) %>%
+             str_remove('-05_00_[0-9]\\.(png|npz)') %>%
+             str_remove('-05_00\\.jpg')) %>% 
+    filter(image_id %in% images_keep_list$image_id) %>%
     select(c(image_path, plotNumber, contains(LV_prefix)))
   row_id <- 'image_path'
 } else
@@ -62,8 +67,8 @@ for(lv in lv_cols)
 if(phenotype_source=='image')
 {
   # calculate PCs
-  pcs <- getPCScores(df_winsor, (matches(LV_prefix) & where(~is.numeric(.x) && 
-                                        var(.x, na.rm = TRUE) != 0)))
+  pcs <- getPCScores(df_winsor, (matches(LV_prefix) & where(~is.numeric(.x) &&
+                                        isTRUE(var(.x, na.rm = TRUE) != 0))))
   
   # winsorize PCs
   df_winsorpc <- pcs %>%
@@ -111,7 +116,13 @@ blues <- blues %>%
   filter(!is.na(genotype_markers)) %>% 
   select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
-write_csv(blues, str_c('output/', out_prefix, '_blues.csv'))
+
+blues_winsor <- blues
+for(v in response_vars)
+{
+  blues_winsor <- winsorize(blues_winsor, v, winsor_strength, 1 - winsor_strength)
+}
+write_csv(blues_winsor, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
 
