@@ -57,7 +57,7 @@ def largest_component_touching_sides(binary_mask: np.ndarray) -> tuple[int | Non
 
     return best_label, (labels == best_label)
 
-image_path ='data/ne2025/device7/2281_LeafPhotoA_2025-09-08 16_59_13.027-05_00.jpg'
+image_path ='output/1622_LeafPhotoA_2025-09-09 09_56_01.433-05_00.jpg'
 tolerance1=50
 tolerance2=50
 down_from_top=750
