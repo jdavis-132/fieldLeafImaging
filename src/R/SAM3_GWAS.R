@@ -120,18 +120,18 @@ rmip <- all_farmcpu_hits %>%
   mutate(embedding = str_c('embedding', stat, feature, sep = '_')) %>% 
   arrange(desc(RMIP))
 
-rmip_0.1features <- rmip %>% 
-  ungroup() %>% 
-  filter(RMIP >= 0.10) %>% 
-  distinct(feature) %>% 
-  pull(feature)
-n_features <- length(rmip_0.1features)
-
-rmip_0.1features <- rmip %>% 
-  filter(feature %in% rmip_0.1features) %>% 
-  ungroup() %>% 
-  mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
-           as.numeric())
+# rmip_0.1features <- rmip %>% 
+#   ungroup() %>% 
+#   filter(RMIP >= 0.10) %>% 
+#   distinct(feature) %>% 
+#   pull(feature)
+# n_features <- length(rmip_0.1features)
+# 
+# rmip_0.1features <- rmip %>% 
+#   filter(feature %in% rmip_0.1features) %>% 
+#   ungroup() %>% 
+#   mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
+#            as.numeric())
 
 select_features <- intersect(head(rmip$embedding, n=15), head(high_fi_features, n=15))
 n_features <- length(select_features)
@@ -202,7 +202,11 @@ embeddings_all <- embeddings %>%
            str_remove('-05_00\\.jpg')) %>%
   bind_rows(embeddings_fvsu, embeddings_aamu) %>% 
   filter(image_id %in% pctd$image_id) %>% 
-  mutate(genotype = str_replace(genotype, 'PI ', 'PI')) %>% 
+  mutate(genotype = str_replace(genotype, 'PI ', 'PI') %>% 
+           str_replace('SC ', 'SC')) %>% 
+  mutate(genotype = case_when(str_length(genotype)==5 & str_starts(genotype, 'SC') ~ str_replace(genotype, 'SC', 'SC0'), 
+                              .default = genotype) %>% 
+           str_replace('SC', 'SC ')) %>% 
   filter(!genotype %in% c('Border', 'Check', 'Fill', 'Mixed')) %>% 
   mutate(genotype = case_when(genotype=='1903 AS 4633' ~ 'PI533936', genotype=='194 Kano' ~ 'PI534054', genotype=='2033Z-3' ~ 'PI533970',
                               genotype=='255 Tirter' ~ 'PI533866', genotype=='290 Feterita Shendi 2' ~ 'PI533769', 
@@ -247,7 +251,64 @@ embeddings_all <- embeddings %>%
                               genotype=='Malwal Aweil' ~ 'PI533962', genotype=='MARTIN' ~ 'PI655987', genotype=='MN 1592 (preconverted)' ~ 'PI533997',
                               genotype=='MN 707 (preconverted)' ~ 'PI533957', genotype=='MN 708 (preconverted)' ~ 'PI576393', 
                               genotype=='Monshal' ~ 'PI533757', genotype=='MR732' ~ 'PI656051', genotype=='Msumbji SB 117' ~ 'PI533869', 
-                              genotype=='Mugbash 56/56' ~ 'PI533759',
-                              .default = genotype))
+                              genotype=='Mugbash 56/56' ~ 'PI533759', genotype=='N250B' ~ 'PI656052', genotype=='N290B' ~ 'PI656053', 
+                              genotype=='P850029' ~ 'PI656056', genotype=='P898012' ~ 'PI656057', genotype=='P9517' ~ 'PI656058', 
+                              genotype=="Nebraska 6350" ~ 'PI533948', genotype=="Nkuli Swaziland" ~ 'PI576340', genotype=="No. 1 Gambela" ~ 'PI533792',
+                              genotype=="No. 25 Gobo, Kaichama Ethiopia" ~ 'PI534123', genotype=="No. 35 Mab" ~ 'PI533903', 
+                              genotype=="No. 37 Ubi, Abelti Ethiopia" ~ 'PI534127', genotype=="No. 4 Hadoui" ~ 'PI533766', 
+                              genotype=="No. 5 Gambela" ~ 'PI533794', genotype=="No. 59 Bekedjie, Kembolcha Ethiopia" ~ 'PI534132', 
+                              genotype=="No. 64 Netch Addesho Ethiopia" ~ 'PI534135', genotype=="No. 65 Amelsie, Kimbolcha Ethiopia" ~ 'PI534128',
+                              genotype=="No. 69 Mashela Tinguish, Warakul Ethiopi" ~ 'PI534133', genotype=="No. 755 Muzeba" ~ 'PI533915', 
+                              genotype=="No. 902 Sorghum arundi" ~ 'PI534145', genotype=="Orange No. l, Baijo" ~ 'PI533902', 
+                              genotype=="P 3742" ~ 'PI533954', genotype=="P 3749 Q2/5/62" ~ 'PI533955', genotype=="P-721" ~ 'PI656055', 
+                              genotype=="PINK KAFIR" ~ 'PI655972', genotype=="Pinolero 1" ~ 'PI656059', genotype=="PL 47" ~ 'PI534079',
+                              genotype=="PLAINSMAN" ~ 'PI655985', genotype=="QL3-TEXAS" ~ 'PI656060', genotype=="QL3(India)" ~ 'PI656061', 
+                              genotype=="R TX 431" ~ 'PI655997', genotype=="R1, 21" ~ 'PI534148', genotype=="R1,38" ~ 'PI533921', 
+                              genotype=="R3, 80" ~ 'PI534155', genotype=="R9188" ~ 'PI656007', 
+                              genotype=="Ramada_(XK: fromTomClemente_UNL_2024)" ~ 'PI651493', genotype=="RCV" ~ 'PI656008', 
+                              genotype=="RED AMBER" ~ 'PI17548', genotype=="RED KAFIR" ~ 'PI655976', genotype=="REDBINE-60" ~ 'PI655989', 
+                              genotype=="Rexx" ~ 'PI534163', genotype=="RIO" ~ 'PI651496', genotype=="ROX ORANGE" ~ 'PI641836', 
+                              genotype=="RTAM428" ~ 'PI656009', genotype=="RTx2536" ~ 'PI656010', genotype=="RTX433" ~ 'PI564164', 
+                              genotype=="RTX434" ~ 'PI564165', genotype=="RTX435" ~ 'PI656004', genotype=="RTx436" ~ 'PI561071', 
+                              genotype=="RTx437" ~ 'PI629034', genotype=="Safara, Kordafan" ~ 'PI533964', genotype=="SAP-124" ~ 'PI576375', 
+                              genotype=="SAP-125" ~ 'PI576376', genotype=="SAP-128" ~ 'PI576426', genotype=="SAP-131" ~ 'PI595739', 
+                              genotype=="SAP-133" ~ 'PI595740', genotype=="SAP-134" ~ 'PI595741', genotype=="SAP-135" ~ 'PI576385', 
+                              genotype=="SAP-138" ~ 'PI597961', genotype=="SAP-139" ~ 'PI595714', genotype=="SAP-141" ~ 'PI576422', 
+                              genotype=="SAP-148" ~ 'PI533965', genotype=="SAP-150" ~ 'PI576425', genotype=="SAP-151" ~ 'PI597957', 
+                              genotype=="SAP-154" ~ 'PI595743', genotype=="SAP-157" ~ 'PI595744', genotype=="SAP-158" ~ 'PI597966', 
+                              genotype=="SAP-159" ~ 'PI595745', genotype=="SAP-162" ~ 'PI595718', genotype=="SAP-166" ~ 'PI597964', 
+                              genotype=="SAP-168" ~ 'PI597968', genotype=="SAP-171" ~ 'PI597973', genotype=="SAP-172" ~ 'PI597976', 
+                              genotype=="SAP-173" ~ 'PI597980', genotype=="SAP-175" ~ 'PI597982', genotype=="SAP-197" ~ 'PI597958', 
+                              genotype=="SAP-206" ~ 'PI533807', genotype=="SAP-219" ~ 'PI533754', genotype=="SAP-225" ~ 'PI597950',
+                              genotype=="SAP-275" ~ 'PI533980', genotype=="SAP-280" ~ 'PI576337', genotype=="SAP-287" ~ 'PI576332',
+                              genotype=="SAP-294" ~ 'PI576345', genotype=="SAP-306" ~ 'PI576333', genotype=="SAP-311" ~ 'PI595702', 
+                              genotype=="SAP-312" ~ 'PI576339', genotype=="SAP-323" ~ 'PI597952', genotype=="SAP-325" ~ 'PI576373', 
+                              genotype=="SAP-340" ~ 'PI595699', genotype=="SAP-342" ~ 'PI576347', genotype=="SAP-347" ~ 'PI576386', 
+                              genotype=="SAP-380" ~ 'PI655982', genotype=="SAP-386" ~ 'PI609456', genotype=="SAP-395" ~ 'PI597965',
+                              genotype=="SAP-398" ~ 'PI597972', genotype=="SAP-404" ~ 'PI533799', genotype=="SAP-50" ~ 'PI655981', 
+                              genotype=="SB-283" ~ 'PI533967', genotype=="SAP-250" ~ 'PI597950', genotype=="SC 0386" ~ 'PI656119', 
+                              genotype=="SC 0332" ~ 'PI656118', genotype=="SC 0172" ~ 'PI656117', genotype=="SC 0525" ~ 'PI656101', 
+                              genotype=="SC 0498" ~ 'PI656099', genotype=="SC 0301" ~ 'PI656094', genotype=="SC 0145" ~ 'PI656082', 
+                              genotype=="SC 0480" ~ 'PI656097', genotype=="SC 1451" ~ 'PI656083', genotype=="SC 1439" ~ 'PI656081', 
+                              genotype=="SC 1429" ~ 'PI656080', genotype=="SC 1426" ~ 'PI656079', genotype=="SC 1424" ~ 'PI656078',
+                              genotype=="SC 1271" ~ 'PI656076', genotype=="SC 1251" ~ 'PI656075', genotype=="SC 1074" ~ 'PI656073', 
+                              genotype=="SC 1019" ~ 'PI656071', genotype=="SC 1047" ~ 'PI656072', genotype=="SC 1476" ~ 'PI656087',
+                              genotype=="SC 0621" ~ 'PI656104', genotype=="SC 0639" ~ 'PI656105', genotype=="SC 0695" ~ 'PI656106', 
+                              genotype=="SC 0971" ~ 'PI656111', genotype=="SC 1215" ~ 'PI656112', genotype=="SC 1440" ~ 'PI656115', 
+                              genotype=="SC 0947" ~ 'PI656121', genotype=="SC 1484" ~ 'PI656088', genotype=="SC 1489" ~ 'PI656089', 
+                              genotype=="SC 1494" ~ 'PI656090', genotype=="Segaolane" ~ 'PI656023', genotype=="SC 170-6-17" ~ 'PI656068',
+                              genotype=="SC 326-6" ~ 'PI656069', genotype=="SC 748-5" ~ 'PI656070', genotype=="SEPON82" ~ 'PI656024', 
+                              genotype=="Shan Qui Red" ~ 'PI656025', genotype=="Sinidyil 177" ~ 'PI533991', genotype=="SO 16" ~ 'PI533785', 
+                              genotype=="SOBERANO" ~ 'PI656026', genotype=="Sorghum Soroti" ~ 'PI533833', genotype=="SPUR FETERITA" ~ 'PI655973',
+                              genotype=="Standard Blackhull Kafir" ~ 'PI655970', genotype=="STANDARD WHITE MILO" ~ 'PI655971', 
+                              genotype=="SUGAR DRIP" ~ 'PI586435', genotype=="SUMAC" ~ 'PI35038', genotype=="SURENO" ~ 'PI561472', 
+                              genotype=="SV 34" ~ 'PI533843', genotype=="T 28" ~ 'PI534053', genotype=="TAM2566" ~ 'PI655977', 
+                              genotype=="Tambroro 7" ~ 'PI533762', genotype=="TEXAS BLACKHULL KAFIR" ~ 'PI655974', genotype=="Town" ~ 'PI656028',
+                              genotype=="Tuery 11" ~ 'PI534139', genotype=="TX 3197 (COMB KAFIR 60) B LINE" ~ 'PI655992', 
+                              genotype=="TX 378 (REDLAN) B LINE" ~ 'PI655991', genotype=="TX 399(DALHART RES WHTLND)B LN" ~ 'PI655993', 
+                              genotype=="TX2783" ~ 'PI656001', genotype=="Tx2891" ~ 'PI548797', genotype=="Tx2911" ~ 'PI607931', 
+                              genotype=="Tx2917" ~ 'PI629040', genotype=="WHEATLAND" ~ 'PI655975', genotype=="WILEY" ~ 'PI655994', 
+                              genotype=="Wit Lichtenburg DL/59/1530" ~ 'PI533961', genotype=="WRAY_(XK: fromBIllRooney_TAMU_2024)" ~ 'PI653616',
+                              genotype=="ZA 71" ~ 'PI534092', .default = genotype))
 
 
