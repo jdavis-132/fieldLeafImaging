@@ -7,7 +7,7 @@ source('../parallelgwas/manhattanPlot.R')
 theme_use <- theme_minimal() +
   theme(axis.text.x = element_text(size = 9, color = 'black', margin = margin(0, 0, 0, 0), 
                                    vjust = 0.5, hjust = 0.5),
-        axis.text.y = element_text(size = 9, color = 'black', vjust = 0, hjust = 0.5),
+        axis.text.y = element_text(size = 9, color = 'black', vjust = 0.5, hjust = 0.5),
         legend.text = element_text(size = 9, color = 'black', vjust = 0.5, hjust = 0.5),
         plot.title = element_text(size = 9, color = 'black', vjust = 0, hjust = 0.5),
         plot.subtitle = element_text(size = 9, color = 'black', vjust = 0, hjust = 0.5),
@@ -16,7 +16,8 @@ theme_use <- theme_minimal() +
         line = element_line(color = 'black', linewidth = 1),
         axis.line.x.bottom = element_line(color = 'black', linewidth = 0.5),
         axis.line.y.left = element_line(color = 'black', linewidth = 0.5),
-        panel.grid = element_blank())
+        panel.grid = element_blank(), 
+        panel.background = element_blank())
 
 preds_pctd_features <- read_csv('output/rf/predictions/sam3_embedding_pctd_all_predictions_rf.csv')
 spearman_r2 <- cor(preds_pctd_features[['label']], preds_pctd_features[['predicted']], use = 'complete.obs', method = 'spearman')^2
@@ -133,7 +134,7 @@ rmip <- all_farmcpu_hits %>%
 #   mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
 #            as.numeric())
 
-select_features <- intersect(head(rmip$embedding, n=15), head(high_fi_features, n=15))
+select_features <- intersect(head(rmip$embedding, n=20), head(high_fi_features, n=20))
 n_features <- length(select_features)
 rmip_selected <- rmip %>% 
   filter(embedding %in% select_features) %>% 
@@ -143,7 +144,7 @@ rmip_selected <- rmip %>%
          label = str_c(feature, '\n(', str_to_title(stat), ')'))
 
 plotManhattan(rmip_selected, RMIP, multitrait = TRUE, trait = label, threshold = 0.2, 
-              colors = paletteer_d('MetBrewer::Archambault', n_features),
+              colors = paletteer_d("rcartocolor::Prism", n_features),
               species = 'sorghum', theme = theme_use)
 ggsave('output/selected_embeddings_farmcpu.png', width = 5, height = 2.5, dpi = 1000, 
        bg = 'transparent')
@@ -206,7 +207,8 @@ embeddings_all <- embeddings %>%
            str_replace('SC ', 'SC')) %>% 
   mutate(genotype = case_when(str_length(genotype)==5 & str_starts(genotype, 'SC') ~ str_replace(genotype, 'SC', 'SC0'), 
                               .default = genotype) %>% 
-           str_replace('SC', 'SC ')) %>% 
+           str_replace('SC', 'SC '), 
+         block = max(block, rep, na.rm = TRUE)) %>% 
   filter(!genotype %in% c('Border', 'Check', 'Fill', 'Mixed')) %>% 
   mutate(genotype = case_when(genotype=='1903 AS 4633' ~ 'PI533936', genotype=='194 Kano' ~ 'PI534054', genotype=='2033Z-3' ~ 'PI533970',
                               genotype=='255 Tirter' ~ 'PI533866', genotype=='290 Feterita Shendi 2' ~ 'PI533769', 
@@ -311,4 +313,63 @@ embeddings_all <- embeddings %>%
                               genotype=="Wit Lichtenburg DL/59/1530" ~ 'PI533961', genotype=="WRAY_(XK: fromBIllRooney_TAMU_2024)" ~ 'PI653616',
                               genotype=="ZA 71" ~ 'PI534092', .default = genotype))
 
+vp <- partitionVariance3(embeddings_all, high_fi_features[1], label = high_fi_features[1], 
+                         modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block)')
+for(i in 2:length(high_fi_features))
+{
+  vp <- bind_rows(vp, 
+                  partitionVariance3(embeddings_all, high_fi_features[i], label = high_fi_features[i], 
+                                     modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block)'))
+}
+vp_summary <- vp %>% 
+  select(grp, pctVar, label) %>%
+  pivot_wider(id_cols = label, 
+              values_from = pctVar, 
+              names_from = grp) %>% 
+  arrange(desc(genotype), desc(location), desc(`location:block`), desc(`location:range`), desc(`location:row`), desc(Residual))
 
+vp <- vp %>% 
+  mutate(grp = factor(grp, levels = c('Residual', 'location:row', 'location:range', 'location:block', 'location', 'genotype')), 
+         label = factor(label, levels = vp_summary$label))
+
+vp.plot <- ggplot(vp, aes(label, pctVar, fill = grp)) + 
+  geom_col() + 
+  scale_x_discrete(expand = c(0, 0), name = 'Embedding') + 
+  scale_y_continuous(expand = c(0, 0), labels = ~str_c(.x, '%'), name = 'Variance Explained') + 
+  scale_fill_manual(values = paletteer_d('MetBrewer::Archambault', 6, direction = -1), 
+                    labels = c('Residual', 'Row', 'Range', 'Block', 'Location', 'Genotype'),
+                    name = NULL) +
+  theme_use + 
+  theme(axis.text.x = element_text(angle=90))
+vp.plot
+ggsave('output/high_fi_vp.png', plot = vp.plot, width = 8, height = 4.5, dpi = 1000, bg = 'transparent')
+
+snps_selected <- c('S05_453076', 'S03_68036482', 'S07_60649975', 'S010_56042856')
+vcf_sig <- read_tsv('output/selected_sig_snps.recode.vcf', skip = 23)
+colnames(vcf_sig) <- c('CHROM', colnames(vcf_sig)[2:11], str_remove(colnames(vcf_sig)[12:730], 'ExPVP_'), str_replace(colnames(vcf_sig)[731:815], 'SC', 'SC '))
+indivs_keep <- read_csv('output/sam3_genotypes_keep.txt', col_names = 'genotype')$genotype %>% 
+  str_replace('SC', 'SC ') %>% 
+  str_remove('ExPVP_')
+
+vcf_sig <- vcf_sig[, c('CHROM', 'POS', 'ID', 'REF', 'ALT', indivs_keep)] %>%
+  pivot_longer(cols = !c(CHROM, POS, ID, REF, ALT), 
+               names_to = 'genotype', 
+               values_to = 'allele') %>% 
+  filter(!(allele %in% c('1|0', '0|1'))) %>% 
+  select(ID, genotype, allele) %>% 
+  pivot_wider(id_cols = genotype, 
+              names_from = ID, 
+              values_from = allele)
+
+ordinal_scores <- read_csv('data/manual/scores_828.csv') %>% 
+  mutate(genotype = str_replace(genotype, 'PI ', 'PI')) %>% 
+  left_join(vcf_sig, join_by(genotype))
+
+for(snp in snps_selected)
+{
+  df <- filter(ordinal_scores, !is.na(ordinal_scores[[snp]]))
+  p <- ggplot(df, aes(.data[[snp]], score_average)) + 
+    geom_boxplot() + 
+    theme_use
+  print(p)
+}
