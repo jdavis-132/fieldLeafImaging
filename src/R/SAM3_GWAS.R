@@ -2,6 +2,7 @@ library(tidyverse)
 source('src/R/Functions.R')
 library(paletteer)
 library(ggcorrplot)
+library(ape)
 source('../parallelgwas/manhattanPlot.R')
 
 theme_use <- theme_minimal() +
@@ -37,7 +38,7 @@ high_err_preds <- preds_pctd_features %>%
   filter(label > 75) %>% 
   filter(predicted < 10) 
 
-fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv')%>% 
+fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
@@ -144,7 +145,7 @@ rmip_selected <- rmip %>%
          label = str_c(feature, '\n(', str_to_title(stat), ')'))
 
 plotManhattan(rmip_selected, RMIP, multitrait = TRUE, trait = label, threshold = 0.2, 
-              colors = paletteer_d("rcartocolor::Prism", n_features),
+              colors = paletteer_d("RColorBrewer::Paired", n_features),
               species = 'sorghum', theme = theme_use)
 ggsave('output/selected_embeddings_farmcpu.png', width = 5, height = 2.5, dpi = 1000, 
        bg = 'transparent')
@@ -365,11 +366,174 @@ ordinal_scores <- read_csv('data/manual/scores_828.csv') %>%
   mutate(genotype = str_replace(genotype, 'PI ', 'PI')) %>% 
   left_join(vcf_sig, join_by(genotype))
 
+samplePhenotypesForResampling('output/scores_828_blues.csv', genotype = 'genotype', trait = 'score_average')
+samplePhenotypesForResampling('output/scores_813_blues.csv', genotype = 'genotype', trait = 'score_average')
+
+all_farmcpu_hits_828 <- summariseSignals_PANICLE('output/gwas/scores_828/GWAS_score_average_*')
+write_csv(all_farmcpu_hits_828, 'output/scores_828_allfarmcpuhits.csv')
+
+all_farmcpu_hits_828 <- read_csv('output/scores_828_allfarmcpuhits.csv')
+
+rmip_828 <- all_farmcpu_hits_828 %>% 
+  group_by(SNP, CHROM, POS) %>% 
+  summarise(RMIP = n()/100, 
+            min_p = min(pval, na.rm = TRUE), 
+            mean_effect = mean(effect, na.rm = TRUE)) %>% 
+  arrange(desc(RMIP))
+plotManhattan(rmip_828, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/28', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
+
+ordinal_vcf_sig <- read_tsv('output/selected_sig_snps_828.recode.vcf', skip = 23)
+colnames(ordinal_vcf_sig) <- c('CHROM', colnames(ordinal_vcf_sig)[2:11], str_remove(colnames(ordinal_vcf_sig)[12:730], 'ExPVP_'), str_replace(colnames(ordinal_vcf_sig)[731:815], 'SC', 'SC '))
+indivs_keep <- read_csv('output/sam3_genotypes_keep.txt', col_names = 'genotype')$genotype %>% 
+  str_replace('SC', 'SC ') %>% 
+  str_remove('ExPVP_')
+
+ordinal_vcf_sig <- ordinal_vcf_sig[, c('CHROM', 'POS', 'ID', 'REF', 'ALT', indivs_keep)] %>%
+  pivot_longer(cols = !c(CHROM, POS, ID, REF, ALT), 
+               names_to = 'genotype', 
+               values_to = 'allele') %>% 
+  filter(!(allele %in% c('1|0', '0|1'))) %>% 
+  select(ID, genotype, allele) %>% 
+  pivot_wider(id_cols = genotype, 
+              names_from = ID, 
+              values_from = allele)
+
+vcf_combined <- left_join(vcf_sig, ordinal_vcf_sig, join_by(genotype)) %>% 
+  mutate(across(!c(genotype), ~as.numeric(str_sub(.x, 1, 1))))
+
 for(snp in snps_selected)
 {
   df <- filter(ordinal_scores, !is.na(ordinal_scores[[snp]]))
-  p <- ggplot(df, aes(.data[[snp]], score_average)) + 
+  model <- lm(score_average ~ df[[snp]], data = df)
+  a <- anova(model)
+  print(str_c('SNP: ', snp, ' pval: ', a$`Pr(>F)`))
+  
+  p <- ggplot(df, aes(.data[[snp]], score_average, fill = .data[[snp]])) + 
     geom_boxplot() + 
+    scale_x_discrete(name = str_c(snp, ' Allele'), labels = c('REF', 'ALT')) + 
+    scale_y_continuous(name = 'Mean Anthracnose Severity Ordinal Score') +
+    scale_fill_paletteer_d("rcartocolor::Prism", 
+                           guide = NULL) + 
+    theme_use
+  print(p)
+  ggsave(str_c('output/', snp, '_ordinal_score_boxplot.png'), plot = p, dpi = 1000)
+}
+
+embeddings_selected <- embeddings_all %>% 
+  select(genotype, location, all_of(select_features)) %>%
+  left_join(vcf_sig, join_by(genotype)) %>% 
+  pivot_longer(starts_with('S'), 
+               names_to = 'SNP', 
+               values_to = 'allele') %>% 
+  filter(!is.na(allele))
+
+boxplot_features <- c('embedding_std_976', 'embedding_mean_119', 'embedding_std_566')
+for(feature in boxplot_features)
+{
+  p <- ggplot(embeddings_selected, aes(allele, .data[[feature]], fill = allele)) + 
+    facet_grid(rows = vars(SNP), cols = vars(location)) + 
+    geom_boxplot() + 
+    scale_x_discrete(name = 'Allele', labels = c('REF', 'ALT')) + 
+    scale_fill_paletteer_d('rcartocolor::Prism', guide = NULL) + 
+    labs(title = feature) +
     theme_use
   print(p)
 }
+
+for(loc in c('AAMU', 'FVSU'))
+{
+  for(feature in boxplot_features)
+  {
+    for(snp in snps_selected)
+    {
+      df <- filter(embeddings_selected, location==loc & SNP==snp)
+      df %>% group_by(allele) %>% count() %>% print()
+      model <- lm(df[[feature]] ~ allele, data = df)
+      a <- anova(model)
+      print(str_c('Pval for ', snp, ' allele for ', feature, ' at ', loc, ': ', a$`Pr(>F)`, ' ', (a$`Pr(>F)` < 0.05/12)))
+    }
+  }
+}
+
+gff <- read.gff('data/genotype/Sbicolor_730_v5.1.gene.gff3')
+gff_genes <- filter(gff, type=='gene') %>% 
+  mutate(CHROM = str_remove(seqid, 'Chr') %>% 
+           as.numeric(), 
+         gene_id = str_split_i(attributes, ';', 2) %>% 
+           str_remove('Name='))
+annotation <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.annotation_info.txt')
+defline <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.defline.txt', col_names = c('transcript_id', 'attribute', 'value')) %>% 
+  pivot_wider(id_cols = transcript_id, 
+              names_from = attribute, 
+              values_from = value) %>% 
+  rename(description = defLine, 
+         auto_defline = pdef) %>% 
+  mutate(gene_id = str_sub(transcript_id, 1,16), 
+         description = str_trim(description), 
+         auto_defline = str_trim(auto_defline))
+
+annotation_full <- gff_genes %>% 
+  left_join(annotation, join_by(gene_id==locusName)) %>% 
+  left_join(defline, join_by(gene_id, transcriptName==transcript_id)) %>% 
+  rename(transcript_id = transcriptName)
+
+annotation_chr3 <- filter(annotation_full, 
+                          seqid=='Chr03' & 
+                            (between(start, 68036482 - 80772, 68036482 + 80772) | between(end, 68036482 - 80772, 68036482 + 80772))) %>%
+  arrange(start, end)
+
+annotation_chr5 <- filter(annotation_full, 
+                         seqid=='Chr05' & 
+                           (between(start, 453076 - 2.4e3, 453076 + 2.4e3) | between(end, 453076 - 2.4e3, 453076 + 2.4e3))) %>%
+  arrange(start, end)
+
+annotation_chr7 <- filter(annotation_full, 
+                          seqid=='Chr07' & 
+                            (between(start, 60649975 - 156454, 60649975 + 156454) | between(end, 60649975 - 156454, 60649975 + 156454))) %>%
+  arrange(start, end)
+
+annotation_chr10 <- filter(annotation_full, 
+                          seqid=='Chr10' & 
+                            (between(start, 56042856 - 38034, 56042856 + 38034) | between(end, 56042856 - 38034, 56042856 + 38034))) %>%
+  arrange(start, end)
+
+
+chr3_119_aamu <- filter(embeddings_selected, SNP==snps_selected[2] & location=='AAMU') %>% 
+  ggplot(aes(allele, embedding_mean_119, fill = allele)) + 
+  geom_boxplot() + 
+  scale_x_discrete(name = str_c(snps_selected[2], ' Allele'), labels = c('REF', 'ALT')) + 
+  scale_fill_manual(values = paletteer_d('RColorBrewer::Paired', 10)[1:2], 
+                    guide = NULL) +  
+  theme_use
+chr3_119_aamu
+ggsave(str_c('output/', snps_selected[2], '_119_aamu_boxplot.png'), dpi = 1000, bg = 'transparent')
+
+chr5_976_fvsu <- filter(embeddings_selected, SNP==snps_selected[1] & location=='FVSU') %>% 
+  ggplot(aes(allele, embedding_std_976, fill = allele)) + 
+  geom_boxplot() + 
+  scale_x_discrete(name = str_c(snps_selected[1], ' Allele'), labels = c('REF', 'ALT')) + 
+  scale_fill_manual(values = paletteer_d('RColorBrewer::Paired', 10)[9:10], 
+                    guide = NULL) +  
+  theme_use
+chr5_976_fvsu
+ggsave(str_c('output/', snps_selected[1], '_976_fvsu_boxplot.png'), dpi = 1000, bg = 'transparent')
+
+chr7_976_aamu <- filter(embeddings_selected, SNP==snps_selected[3] & location=='AAMU') %>% 
+  ggplot(aes(allele, embedding_std_976, fill = allele)) + 
+  geom_boxplot() + 
+  scale_x_discrete(name = str_c(snps_selected[3], ' Allele'), labels = c('REF', 'ALT')) + 
+  scale_fill_manual(values = paletteer_d('RColorBrewer::Paired', 10)[9:10], 
+                         guide = NULL) + 
+  theme_use
+chr7_976_aamu
+ggsave(str_c('output/', snps_selected[3], '_976_aamu_boxplot.png'), dpi = 1000, bg = 'transparent')
+
+chr10_119_fvsu <- filter(embeddings_selected, SNP==snps_selected[4] & location=='FVSU') %>% 
+  ggplot(aes(allele, embedding_mean_119, fill = allele)) + 
+  geom_boxplot() + 
+  scale_x_discrete(name = str_c(snps_selected[4], ' Allele'), labels = c('REF', 'ALT')) + 
+  scale_fill_manual(values = paletteer_d('RColorBrewer::Paired', 10)[1:2], 
+                    guide = NULL) +  
+  theme_use
+chr10_119_fvsu
+ggsave(str_c('output/', snps_selected[4], '_119_fvsu_boxplot.png'), dpi = 1000, bg = 'transparent')
