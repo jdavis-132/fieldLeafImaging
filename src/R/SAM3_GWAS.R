@@ -122,6 +122,10 @@ rmip <- all_farmcpu_hits %>%
   mutate(embedding = str_c('embedding', stat, feature, sep = '_')) %>% 
   arrange(desc(RMIP))
 
+rmip_summary <- rmip %>%
+  filter(RMIP > 0.2) %>% 
+  group_by(SNP) %>% 
+  summarise(sig_features = paste0(embedding, collapse = ';'))
 # rmip_0.1features <- rmip %>% 
 #   ungroup() %>% 
 #   filter(RMIP >= 0.10) %>% 
@@ -315,30 +319,30 @@ embeddings_all <- embeddings %>%
                               genotype=="ZA 71" ~ 'PI534092', .default = genotype))
 
 vp <- partitionVariance3(embeddings_all, high_fi_features[1], label = high_fi_features[1], 
-                         modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block)')
+                         modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block) + (1|genotype:location)')
 for(i in 2:length(high_fi_features))
 {
   vp <- bind_rows(vp, 
                   partitionVariance3(embeddings_all, high_fi_features[i], label = high_fi_features[i], 
-                                     modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block)'))
+                                     modelStatement = '~ (1|genotype) + (1|location) + (1|location:range) + (1|location:row) + (1|location:block) + (1|genotype:location)'))
 }
 vp_summary <- vp %>% 
   select(grp, pctVar, label) %>%
   pivot_wider(id_cols = label, 
               values_from = pctVar, 
               names_from = grp) %>% 
-  arrange(desc(genotype), desc(location), desc(`location:block`), desc(`location:range`), desc(`location:row`), desc(Residual))
+  arrange(desc(genotype), desc(location), desc(`genotype:location`), desc(`location:block`), desc(`location:range`), desc(`location:row`), desc(Residual))
 
 vp <- vp %>% 
-  mutate(grp = factor(grp, levels = c('Residual', 'location:row', 'location:range', 'location:block', 'location', 'genotype')), 
+  mutate(grp = factor(grp, levels = c('Residual', 'location:row', 'location:range', 'location:block', 'location', 'genotype:location', 'genotype')), 
          label = factor(label, levels = vp_summary$label))
 
 vp.plot <- ggplot(vp, aes(label, pctVar, fill = grp)) + 
   geom_col() + 
   scale_x_discrete(expand = c(0, 0), name = 'Embedding') + 
   scale_y_continuous(expand = c(0, 0), labels = ~str_c(.x, '%'), name = 'Variance Explained') + 
-  scale_fill_manual(values = paletteer_d('MetBrewer::Archambault', 6, direction = -1), 
-                    labels = c('Residual', 'Row', 'Range', 'Block', 'Location', 'Genotype'),
+  scale_fill_manual(values = paletteer_d('MetBrewer::Archambault', 7, direction = -1), 
+                    labels = c('Residual', 'Row', 'Range', 'Block', 'Genotype x Location', 'Location', 'Genotype'),
                     name = NULL) +
   theme_use + 
   theme(axis.text.x = element_text(angle=90))
@@ -381,6 +385,19 @@ rmip_828 <- all_farmcpu_hits_828 %>%
             mean_effect = mean(effect, na.rm = TRUE)) %>% 
   arrange(desc(RMIP))
 plotManhattan(rmip_828, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/28', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
+
+all_farmcpu_hits_813 <- summariseSignals_PANICLE('output/gwas/scores_813/GWAS_score_average_*')
+write_csv(all_farmcpu_hits_813, 'output/scores_813_allfarmcpuhits.csv')
+
+all_farmcpu_hits_813 <- read_csv('output/scores_813_allfarmcpuhits.csv')
+
+rmip_813 <- all_farmcpu_hits_813 %>% 
+  group_by(SNP, CHROM, POS) %>% 
+  summarise(RMIP = n()/100, 
+            min_p = min(pval, na.rm = TRUE), 
+            mean_effect = mean(effect, na.rm = TRUE)) %>% 
+  arrange(desc(RMIP))
+plotManhattan(rmip_813, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/13', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
 
 ordinal_vcf_sig <- read_tsv('output/selected_sig_snps_828.recode.vcf', skip = 23)
 colnames(ordinal_vcf_sig) <- c('CHROM', colnames(ordinal_vcf_sig)[2:11], str_remove(colnames(ordinal_vcf_sig)[12:730], 'ExPVP_'), str_replace(colnames(ordinal_vcf_sig)[731:815], 'SC', 'SC '))
