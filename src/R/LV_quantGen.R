@@ -17,7 +17,8 @@ winsor_strength <- as.numeric(str_remove(args[length(args) - 2], fixed('-')))
 genotype_alignment <- str_remove(args[length(args) - 1], fixed('-'))
 images_keep <- str_remove(args[length(args)], fixed('-')) # file with list of images to keep, excluding end of basename beginning from '-05_00_[tag].png, one per line
 
-genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>% 
+genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>%
+  mutate(genotype_idx = str_remove_all(genotype_idx, ' ')) %>%
   distinct()
 
 # join dataframes
