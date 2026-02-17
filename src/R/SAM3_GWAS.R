@@ -104,6 +104,20 @@ for(feature in high_fi_features)
   samplePhenotypesForResampling('output/sam3_rs_blues.csv', 'genotype', feature)
 }
 
+# split files for kmerGWAS
+sam3_rs_blues <- read_csv('output/sam3_rs_blues.csv') %>% 
+  select(c(genotype, all_of(high_fi_features))) %>% 
+  rename(accession_id = genotype)
+splitDataFrameKmer <- function(data, out)
+{
+  for(i in 2:ncol(data))
+  {
+    outfile <- paste0(out, colnames(data[i]), '.tsv')
+    subset <- data[, c(1, i)]
+    write.table(subset, outfile, quote = FALSE, row.names = FALSE, sep = '\t', col.names = c('accession_id', 'phenotype_value'))
+  }
+}
+splitDataFrameKmer(sam3_rs_blues, out = 'output/sam3_rs_high_fi_blues_')
 # all_farmcpu_hits <- summariseSignals_PANICLE('output/gwas/sam3/farmcpu/GWAS_embedding*') %>%
 #   mutate(stat = str_split_i(filename, '_', 3),
 #          feature = str_split_i(filename, '_', 4) %>%
