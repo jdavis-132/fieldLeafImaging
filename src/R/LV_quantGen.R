@@ -92,13 +92,13 @@ if(phenotype_source=='image')
 }
 
 # broad-sense variance partitioning 
-vp <- tibble()
-for(v in response_vars)
-{
-  vp <- bind_rows(vp, partitionVariance3(df, v, v, ' ~ (1|genotype) + (1|range) + (1|row)'))
-}
-
-write_csv(vp, str_c('output/', out_prefix, '_vp.csv'))
+# vp <- tibble()
+# for(v in response_vars)
+# {
+#   vp <- bind_rows(vp, partitionVariance3(df, v, v, ' ~ (1|genotype) + (1|range) + (1|row)'))
+# }
+# 
+# write_csv(vp, str_c('output/', out_prefix, '_vp.csv'))
 
 #BLUEs
 blues <- getBLUEs(df, response_vars[1], 'genotype', 'range', 'row')
@@ -113,7 +113,7 @@ if(length(response_vars) > 1)
   }
 }
 blues <- blues %>% 
-  right_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
+  inner_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
   filter(!is.na(genotype_markers)) %>% 
   select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
@@ -128,8 +128,8 @@ write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_kee
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
 
 # Convert blues to plink for h2 in ldak
-convertPhenotypesToPLINK(str_c('output/', out_prefix, '_blues.csv'), response_vars)
+# convertPhenotypesToPLINK(str_c('output/', out_prefix, '_blues.csv'), response_vars)
 
 # split BLUEs dataframe for parallel GWAS
-splitDataFrame(blues, response_vars, str_c('output/', out_prefix, '_blues_'), 25)
+# splitDataFrame(blues, response_vars, str_c('output/', out_prefix, '_blues_'), 25)
 
