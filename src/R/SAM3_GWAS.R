@@ -143,14 +143,14 @@ rmip <- all_farmcpu_hits %>%
   mutate(embedding = str_c('embedding', stat, feature, sep = '_')) %>% 
   arrange(desc(RMIP))
 
-rmip_828_0.1 <- rmip %>%
+rmip_0.2 <- rmip %>%
   filter(RMIP > 0.2) %>% 
   group_by(SNP, CHROM, POS) %>% 
   summarise(sig_features = paste0(embedding, collapse = ';'), 
             max_RMIP = max(RMIP, na.rm = TRUE)) %>% 
-  mutate(window_start = max(c(0, POS - 1e6)), 
-         window_end = POS + 1e6)
-write_csv(rmip_828_0.1, 'candidate_info/embeddings/embedding_significant_SNPs_0.2_reseq.csv')
+  mutate(window_start = max(c(0, POS - 1e5)), 
+         window_end = POS + 1e5)
+write_csv(rmip_0.2, 'output/candidate_info/embeddings/embedding_significant_SNPs_0.2_reseq.csv')
 # rmip_0.1features <- rmip %>% 
 #   ungroup() %>% 
 #   filter(RMIP >= 0.10) %>% 
@@ -398,23 +398,6 @@ ordinal_scores <- read_csv('data/manual/scores_828.csv') %>%
 samplePhenotypesForResampling('output/scores_828_blues.csv', genotype = 'genotype', trait = 'score_average')
 samplePhenotypesForResampling('output/scores_813_blues.csv', genotype = 'genotype', trait = 'score_average')
 
-all_farmcpu_hits_828 <- summariseSignals_PANICLE('output/gwas/scores_828/GWAS_score_average_*')
-write_csv(all_farmcpu_hits_828, 'output/scores_828_allfarmcpuhits.csv')
-
-all_farmcpu_hits_828 <- read_csv('output/scores_828_allfarmcpuhits.csv')
-
-rmip_828 <- all_farmcpu_hits_828 %>% 
-  group_by(SNP, CHROM, POS) %>% 
-  summarise(RMIP = n()/100, 
-            min_p = min(pval, na.rm = TRUE), 
-            mean_effect = mean(effect, na.rm = TRUE)) %>% 
-  arrange(desc(RMIP))
-plotManhattan(rmip_828, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/28', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
-rmip_828_0.1 <- filter(rmip_828, RMIP >= 0.1) %>% 
-  mutate(window_start = max(c(0, POS - 1e6)), 
-         window_end = POS + 1e6)
-write_csv(rmip_828_0.1, 'candidate_info/scores_828/scores_828_significant_SNPs_0.1_reseq.csv')
-
 all_farmcpu_hits_813 <- summariseSignals_PANICLE('output/gwas/scores_813/GWAS_score_average_*')
 write_csv(all_farmcpu_hits_813, 'output/scores_813_allfarmcpuhits.csv')
 
@@ -427,11 +410,34 @@ rmip_813 <- all_farmcpu_hits_813 %>%
             mean_effect = mean(effect, na.rm = TRUE)) %>% 
   arrange(desc(RMIP))
 plotManhattan(rmip_813, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/13', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
+ggsave('output/candidate_info/scores_813/scores_813_manhattan.png', width = 5, height = 2.5, dpi = 1000, bg = 'transparent')
 
 rmip_813_0.1 <- filter(rmip_813, RMIP >=0.1) %>% 
-  mutate(window_start = max(c(0, POS - 1e6)), 
-         window_end = POS + 1e6)
-write_csv(rmip_813_0.1, 'candidate_info/scores_813/scores_813_significant_SNPs_0.1_reseq.csv')
+  mutate(window_start = max(c(0, POS - 1e5)), 
+         window_end = POS + 1e5)
+write_csv(rmip_813_0.1, 'output/candidate_info/scores_813/scores_813_significant_SNPs_0.1_reseq.csv')
+
+
+all_farmcpu_hits_828 <- summariseSignals_PANICLE('output/gwas/scores_828/GWAS_score_average_*')
+write_csv(all_farmcpu_hits_828, 'output/scores_828_allfarmcpuhits.csv')
+
+all_farmcpu_hits_828 <- read_csv('output/scores_828_allfarmcpuhits.csv')
+
+rmip_828 <- all_farmcpu_hits_828 %>% 
+  group_by(SNP, CHROM, POS) %>% 
+  summarise(RMIP = n()/100, 
+            min_p = min(pval, na.rm = TRUE), 
+            mean_effect = mean(effect, na.rm = TRUE)) %>% 
+  arrange(desc(RMIP))
+plotManhattan(rmip_828, RMIP, multitrait = FALSE, resampling = TRUE, threshold = 0.2, main = 'Mean Anthracnose Severity Ordinal Score \n8/28', colors = paletteer_d("rcartocolor::Prism", 10), theme = theme_use, species = 'sorghum')
+ggsave('output/candidate_info/scores_828/scores_828_manhattan.png', width = 5, height = 2.5, dpi = 1000, bg = 'transparent')
+
+rmip_828_0.1 <- filter(rmip_828, RMIP >= 0.1) %>% 
+  mutate(window_start = max(c(0, POS - 1e5)), 
+         window_end = POS + 1e5)
+write_csv(rmip_828_0.1, 'output/candidate_info/scores_828/scores_828_significant_SNPs_0.1_reseq.csv')
+
+
 
 ordinal_vcf_sig <- read_tsv('output/selected_sig_snps_828.recode.vcf', skip = 23)
 colnames(ordinal_vcf_sig) <- c('CHROM', colnames(ordinal_vcf_sig)[2:11], str_remove(colnames(ordinal_vcf_sig)[12:730], 'ExPVP_'), str_replace(colnames(ordinal_vcf_sig)[731:815], 'SC', 'SC '))
@@ -506,29 +512,30 @@ for(loc in c('AAMU', 'FVSU'))
   }
 }
 
-gff <- read.gff('data/genotype/Sbicolor_730_v5.1.gene.gff3')
-gff_genes <- filter(gff, type=='gene') %>% 
-  mutate(CHROM = str_remove(seqid, 'Chr') %>% 
-           as.numeric(), 
-         gene_id = str_split_i(attributes, ';', 2) %>% 
-           str_remove('Name='))
-annotation <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.annotation_info.txt')
-defline <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.defline.txt', col_names = c('transcript_id', 'attribute', 'value')) %>% 
-  pivot_wider(id_cols = transcript_id, 
-              names_from = attribute, 
-              values_from = value) %>% 
-  rename(description = defLine, 
-         auto_defline = pdef) %>% 
-  mutate(gene_id = str_sub(transcript_id, 1,16), 
-         description = str_trim(description), 
-         auto_defline = str_trim(auto_defline))
-
-annotation_full <- gff_genes %>% 
-  left_join(annotation, join_by(gene_id==locusName)) %>% 
-  left_join(defline, join_by(gene_id, transcriptName==transcript_id)) %>% 
-  rename(transcript_id = transcriptName)
-
-write_csv(annotation_full, 'data/sorghum_v5.1_annotation_combined.csv')
+# gff <- read.gff('data/genotype/Sbicolor_730_v5.1.gene.gff3')
+# gff_genes <- filter(gff, type=='gene') %>% 
+#   mutate(CHROM = str_remove(seqid, 'Chr') %>% 
+#            as.numeric(), 
+#          gene_id = str_split_i(attributes, ';', 2) %>% 
+#            str_remove('Name='))
+# annotation <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.annotation_info.txt')
+# defline <- read_tsv('data/genotype/Sbicolor_730_v5.1.P14.defline.txt', col_names = c('transcript_id', 'attribute', 'value')) %>% 
+#   pivot_wider(id_cols = transcript_id, 
+#               names_from = attribute, 
+#               values_from = value) %>% 
+#   rename(description = defLine, 
+#          auto_defline = pdef) %>% 
+#   mutate(gene_id = str_sub(transcript_id, 1,16), 
+#          description = str_trim(description), 
+#          auto_defline = str_trim(auto_defline))
+# 
+# annotation_full <- gff_genes %>% 
+#   left_join(annotation, join_by(gene_id==locusName)) %>% 
+#   left_join(defline, join_by(gene_id, transcriptName==transcript_id)) %>% 
+#   rename(transcript_id = transcriptName)
+# 
+# write_csv(annotation_full, 'data/sorghum_v5.1_annotation_combined.csv')
+annotation_full <- read_csv('data/sorghum_v5.1_annotation_combined.csv')
 
 annotation_chr3 <- filter(annotation_full, 
                           seqid=='Chr03' & 
@@ -614,6 +621,18 @@ for(f in high_fi_features)
   write.table(high_images, str_c('output/', f, '_high_images.txt'), quote = FALSE, row.names = FALSE, col.names = FALSE)
 }
 
+for(i in 1:nrow(rmip_0.2))
+{
+  snp <- rmip_0.2$SNP[i]
+  chr <- rmip_0.2$CHROM[i]
+  window_start <- rmip_0.2$window_start[i]
+  window_end <- rmip_0.2$window_end[i]
+  
+  annotation_filtered <- filter(annotation_full, CHROM==chr & 
+                                  (between(start, window_start, window_end) | between(end, window_start, window_end)))
+  write_csv(annotation_filtered, str_c('output/candidate_info/embeddings/', snp, '_candidates_100kb.csv'))
+}
+
 for(i in 1:nrow(rmip_813_0.1))
 {
   snp <- rmip_813_0.1$SNP[i]
@@ -623,13 +642,26 @@ for(i in 1:nrow(rmip_813_0.1))
   
   annotation_filtered <- filter(annotation_full, CHROM==chr & 
                                   (between(start, window_start, window_end) | between(end, window_start, window_end)))
-  write_csv(annotation_filtered, str_c('candidate_info/scores_813/', snp, '_candidates_2Mb.csv'))
+  write_csv(annotation_filtered, str_c('output/candidate_info/scores_813/', snp, '_candidates_100kb.csv'))
 }
 
-sig_kmers_813 <- read_csv('candidate_info/scores_813_kmers/significant_kmers_Anthracnose_813_849.csv') %>% 
+for(i in 1:nrow(rmip_828_0.1))
+{
+  snp <- rmip_828_0.1$SNP[i]
+  chr <- rmip_828_0.1$CHROM[i]
+  window_start <- rmip_828_0.1$window_start[i]
+  window_end <- rmip_828_0.1$window_end[i]
+  
+  annotation_filtered <- filter(annotation_full, CHROM==chr & 
+                                  (between(start, window_start, window_end) | between(end, window_start, window_end)))
+  write_csv(annotation_filtered, str_c('output/candidate_info/scores_828/', snp, '_candidates_100kb.csv'))
+}
+
+
+sig_kmers_813 <- read_csv('output/candidate_info/scores_813_kmers/significant_kmers_Anthracnose_813_849.csv') %>% 
   mutate(chr_num = as.numeric(chr_num), 
-         window_start = max(c(0, position - 1e6)), 
-         window_end = position + 1e6)
+         window_start = max(c(0, position - 1e5)), 
+         window_end = position + 1e5)
 
 for(i in 1:nrow(sig_kmers_813))
 {
@@ -640,7 +672,7 @@ for(i in 1:nrow(sig_kmers_813))
   
   annotation_filtered <- filter(annotation_full, CHROM==chr & 
                                   (between(start, window_start, window_end) | between(end, window_start, window_end)))
-  write_csv(annotation_filtered, str_c('candidate_info/scores_813_kmers/', kmer, '_candidates_2Mb.csv'))
+  write_csv(annotation_filtered, str_c('output/candidate_info/scores_813_kmers/', kmer, '_candidates_100kb.csv'))
 }
 # no sig kmers in 8/28
 # sig_kmers_828 <- read_csv('candidate_info/scores_828_kmers/significant_kmers_Anthracnose_828_849.csv') %>% 
