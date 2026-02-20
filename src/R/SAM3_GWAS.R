@@ -661,14 +661,14 @@ for(i in 1:nrow(rmip_828_0.1))
 }
 
 
-sig_kmers_813 <- read_csv('output/candidate_info/scores_813_kmers/significant_kmers_Anthracnose_813_849.csv') %>% 
-  mutate(chr_num = as.numeric(chr_num), 
-         window_start = max(c(0, position - 1e5)), 
+sig_kmers_813 <- read_csv('output/candidate_info/scores_813_kmers/significant_kmers_Anthracnose_813_849.csv') %>%
+  mutate(chr_num = as.numeric(chr_num),
+         window_start = pmax(0, position - 1e5),
          window_end = position + 1e5)
 
 for(i in 1:nrow(sig_kmers_813))
 {
-  chr <- sig_kmers_813$chr_num[i]
+  chr <- as.numeric(str_remove(sig_kmers_813$chromosome[i], 'Chr'))
   kmer <- str_c(sig_kmers_813$chromosome[i], '_', sig_kmers_813$position[i])
   window_start <- sig_kmers_813$window_start[i]
   window_end <- sig_kmers_813$window_end[i]
