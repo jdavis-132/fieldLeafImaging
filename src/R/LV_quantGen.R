@@ -32,7 +32,8 @@ if(phenotype_source == 'image')
                     as.numeric(), 
            image_id = basename(image_path) %>%
              str_remove('-05_00_[0-9]\\.(png|npz)') %>%
-             str_remove('-05_00\\.jpg')) %>% 
+             str_remove('-05_00\\.jpg') %>% 
+             str_remove('-05_00')) %>% 
     filter(image_id %in% images_keep_list$image_id) %>%
     select(c(image_path, plotNumber, contains(LV_prefix)))
   row_id <- 'image_path'
