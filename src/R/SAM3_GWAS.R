@@ -222,7 +222,7 @@ embeddings_aamu <- read_csv('output/sam3_embeddings_aamu.csv') %>%
            str_remove('-05_00\\.jpg')) %>% 
   left_join(idx_aamu, join_by(plotNumber))
 
-idx_unl <- read_csv('data/ne2025/SbDiv_ne2025_fieldindex.csv') %>% 
+idx_unl <- read_csv('data/ne2025/SbDiv_ne2025_fieldindex.csv') #%>% 
   select(!genotype)
 pctd <- read_csv('data/final_disease_scores.csv') %>% 
   mutate(image_id = str_remove(image_path, '-05_00_leaf.png'))

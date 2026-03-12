@@ -12,7 +12,10 @@ for(grp in trait_groups)
   {
     trait <- str_remove(f, str_c('output/candidate_info/mlm_20260312/', grp, '/GWAS_')) %>% 
       str_remove('_all_results.csv')
-    thresh <- summary[which(summary$Trait==trait), 'Threshold']
+    
+    if(str_detect(trait, 'PC')) {next}
+    
+    thresh <- summary$Threshold[summary$Trait==trait]
     
     pmap <- read_csv(f)
       
