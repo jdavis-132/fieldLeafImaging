@@ -72,3 +72,23 @@ peaks <- peaks %>%
                         'embedding_mean_619,embedding_mean_698', 'embedding_std_793', 'embedding_mean_174', 
                         'scores_813', 'embedding_mean_308', 'embedding_std_251', 'embedding_mean_586'))
 write_tsv(peaks, 'output/candidate_info/mlm_20260312/peaks_all_traits.tsv')
+
+peaks <- read_tsv('output/candidate_info/mlm_20260312/peaks_all_traits.tsv')
+annotation <- read_csv('data/sorghum_v5.1_annotation_combined.csv')
+
+for(p in 1:nrow(peaks))
+{
+  getCandidateGenes(annotations = annnotation, 
+                    outdir = 'output/candidate_info/mlm_20260312/candidate_genes/', 
+                    chr = peaks$CHROM[p], 
+                    pos = peaks$POS[p], 
+                    window = 1e5)
+}
+
+scores_813_log10_6 <- read_csv('output/candidate_info/mlm_20260312/scores_813/GWAS_score_average_all_results.csv') %>% 
+  filter(MLM_P < 1e-6)
+write_csv(scores_813_log10_6, 'output/candidate_info/mlm_20260312/scores_813_plt1eneg6.csv')
+
+scores_828_log10_6 <- read_csv('output/candidate_info/mlm_20260312/scores_828/GWAS_score_average_all_results.csv') %>%
+  filter(MLM_P < 1e-6)
+write_csv(scores_828_log10_6, 'output/candidate_info/mlm_20260312/scores_828_plt1eneg6.csv')

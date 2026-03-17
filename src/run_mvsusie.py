@@ -25,7 +25,7 @@ import json
 import argparse
 
 # Add mvsusie-py path
-sys.path.insert(0, '/work/schnablelab/jdavis132/mvsusie-py/src/')
+sys.path.insert(0, '../mvsusie-py/src/')
 
 print("="*80)
 print("MVSUSIE-PY ANALYSIS")
@@ -60,7 +60,7 @@ END_POS = args.end
 TRAITS = [t.strip() for t in args.traits.split(',')] if args.traits else None
 
 # Sample size (from the first GWAS we read)
-N_SAMPLES = None  # Will be inferred automatically
+N_SAMPLES = 794  # Will be inferred automatically
 
 print(f"\nConfiguration:")
 print(f"  Locus: chr{CHROM}:{START_POS:,}-{END_POS:,}")
@@ -288,7 +288,7 @@ print(f"STEP 5: Running mvsusie_rss")
 print(f"{'='*80}")
 
 try:
-    from mvsusie_py import mvsusie_rss
+    from mvsusie_py import mvsusie_rss_joint
 except ImportError as e:
     print(f"\n❌ ERROR: Could not import mvsusie_py")
     print(f"  {e}")
@@ -301,7 +301,7 @@ print(f"    n: {N_SAMPLES}")
 print(f"    L: 10 (max effects)")
 print(f"\n  Running (this may take several minutes)...")
 
-fit = mvsusie_rss(
+fit = mvsusie_rss_joint(
     z=z,
     R=R,
     n=N_SAMPLES,
@@ -393,13 +393,13 @@ try:
 except:
     pass
 
-results.to_csv(f'{WORK_DIR}/mvsusie_results.csv', index=False)
-print(f"  ✓ Results: {WORK_DIR}/mvsusie_results.csv")
+results.to_csv(f'{WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_results.csv', index=False)
+print(f"  ✓ Results: {WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_results.csv")
 
 # Save fit object (pickle)
-with open(f'{WORK_DIR}/mvsusie_fit.pkl', 'wb') as f:
+with open(f'{WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_fit.pkl', 'wb') as f:
     pickle.dump(fit, f)
-print(f"  ✓ Fit object: {WORK_DIR}/mvsusie_fit.pkl")
+print(f"  ✓ Fit object: {WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_fit.pkl")
 
 # Save metadata
 metadata = {
@@ -414,9 +414,9 @@ metadata = {
     'converged': None  # MultiSusieResult may not have this
 }
 
-with open(f'{WORK_DIR}/metadata.json', 'w') as f:
+with open(f'{WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_metadata.json', 'w') as f:
     json.dump(metadata, f, indent=2)
-print(f"  ✓ Metadata: {WORK_DIR}/metadata.json")
+print(f"  ✓ Metadata: {WORK_DIR}/chr{CHROM}_{START_POS}_{END_POS}_mvsusie_metadata.json")
 
 # ============================================================================
 # STEP 8: CREATE SIMPLE VISUALIZATIONS
@@ -441,9 +441,9 @@ try:
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f'{WORK_DIR}/plots/pip_vs_position.png', dpi=300)
+    plt.savefig(f'{WORK_DIR}/plots/chr{CHROM}_{START_POS}_{END_POS}_pip_vs_position.png', dpi=300)
     plt.close()
-    print(f"  ✓ Plot: {WORK_DIR}/plots/pip_vs_position.png")
+    print(f"  ✓ Plot: {WORK_DIR}/plots/chr{CHROM}_{START_POS}_{END_POS}_pip_vs_position.png")
 
     # Plot 2: PIP distribution
     plt.figure(figsize=(10, 6))
@@ -455,9 +455,9 @@ try:
     plt.legend()
     plt.grid(True, alpha=0.3)
     plt.tight_layout()
-    plt.savefig(f'{WORK_DIR}/plots/pip_distribution.png', dpi=300)
+    plt.savefig(f'{WORK_DIR}/plots/chr{CHROM}_{START_POS}_{END_POS}_pip_distribution.png', dpi=300)
     plt.close()
-    print(f"  ✓ Plot: {WORK_DIR}/plots/pip_distribution.png")
+    print(f"  ✓ Plot: {WORK_DIR}/plots/chr{CHROM}_{START_POS}_{END_POS}_pip_distribution.png")
 
 except ImportError:
     print(f"  ⚠️  matplotlib not available, skipping visualizations")
@@ -481,5 +481,4 @@ print(f"  6. plots/pip_distribution.png - PIP distribution")
 print(f"\nNext steps:")
 print(f"  1. Review the results in {WORK_DIR}/mvsusie_results.csv")
 print(f"  2. Compare with pySuSiE results (if available)")
-print(f"  3. Run the analysis for color-corrected data with 03_run_mvsusie_CORRECTED.py")
 print()

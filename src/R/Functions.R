@@ -160,3 +160,12 @@ summariseSignals_PANICLE <- function(path)
   return(signals)
 }
 
+getCandidateGenes <- function(annotations, outdir, chr, pos, window)
+{
+  window_start <- max(0, pos - window)
+  window_end <- pos + window
+  annotation_filtered <- annotation %>% 
+    filter(CHROM==chr &
+             (between(start, window_start, window_end) | between(end, window_start, window_end)))
+  write_csv(annotation_filtered, str_c(outdir, 'chr', chr, '_', pos, '_candidates_', (window/1e3), 'kb.csv'))
+}

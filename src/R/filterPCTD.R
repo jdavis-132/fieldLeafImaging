@@ -47,3 +47,30 @@ images_keep_ne_senesced_removed <- basename(pctd_ne_filt$image_path) %>%
   str_remove('-05_00_leaf.png') %>% 
   str_remove('-05_00_masked.png')
 write.table(images_keep_ne_senesced_removed, 'data/ne2025/images_keep_senesced_removed.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+pctd_quantiles <- quantile(pctd_ne_filt$pctd, probs = c(0, 0.2, 0.4, 0.6, 0.8, 1))
+quant1 <- filter(pctd_ne_filt, pctd < pctd_quantiles[2])
+quant2 <- filter(pctd_ne_filt, (pctd_quantiles[2] <= pctd) & (pctd < pctd_quantiles[3]))
+quant3 <- filter(pctd_ne_filt, (pctd_quantiles[3] <= pctd) & (pctd < pctd_quantiles[4]))
+quant4 <- filter(pctd_ne_filt, (pctd_quantiles[4] <= pctd) & (pctd < pctd_quantiles[5]))
+quant5 <- filter(pctd_ne_filt, pctd >= pctd_quantiles[5])
+
+imageNESample200 <- c(sample(quant1$image_path, 40), sample(quant2$image_path, 40), sample(quant3$image_path, 40), 
+                    sample(quant4$image_path, 40), sample(quant5$image_path, 40))
+write.table(imageNESample200, 'output/ne2025_images_to_score_200.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+pctd_quantiles_fvsu <- quantile(pctd_fvsu$ExG_P20_disease_pct, probs = c(0, 0.33, 0.66, 1))
+quant1_fvsu <- filter(pctd_fvsu, ExG_P20_disease_pct < pctd_quantiles_fvsu[2])
+quant2_fvsu <- filter(pctd_fvsu, (ExG_P20_disease_pct >= pctd_quantiles_fvsu[2]) & (ExG_P20_disease_pct < pctd_quantiles_fvsu[3]))
+quant3_fvsu <- filter(pctd_fvsu, ExG_P20_disease_pct >= pctd_quantiles_fvsu[3])
+
+imageFVSUSample30 <- c(sample(quant1_fvsu$image_path, 10), sample(quant2_fvsu$image_path, 10), sample(quant3_fvsu$image_path, 10))
+write.table(imageFVSUSample30, 'output/fvsu2025_images_to_score_30.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+pctd_quantiles_aamu <- quantile(pctd_aamu$ExG_P20_disease_pct, probs = c(0, 0.33, 0.66, 1))
+quant1_aamu <- filter(pctd_aamu, ExG_P20_disease_pct < pctd_quantiles_aamu[2])
+quant2_aamu <- filter(pctd_aamu, (ExG_P20_disease_pct >= pctd_quantiles_aamu[2]) & (ExG_P20_disease_pct < pctd_quantiles_aamu[3]))
+quant3_aamu <- filter(pctd_aamu, ExG_P20_disease_pct >= pctd_quantiles_aamu[3])
+
+imageAAMUSample30 <- c(sample(quant1_aamu$image_path, 10), sample(quant2_aamu$image_path, 10), sample(quant3_aamu$image_path, 10))
+write.table(imageAAMUSample30, 'output/aamu2025_images_to_score_30.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
