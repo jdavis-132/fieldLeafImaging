@@ -63,4 +63,12 @@ peaks <- read_csv('output/candidate_info/mlm_20260312/peaks_all_traits.csv') %>%
                                   .default = max(0, POS - (window_size/2))), 
          window_end = case_when(pLength >= window_size ~ pStop, 
                                 .default = POS + (window_size / 2)))
-write_csv(peaks, 'output/candidate_info/mlm_20260312/peaks_all_traits.csv')
+peaks <- peaks %>% 
+  ungroup() %>% 
+  add_column(traits = c('predicted', 'pctd', 'pctd', 'pctd', 'pctd,predicted', "embedding_mean_108", 
+                        'pctd,predicted,embedding_std_251', 'pctd', 'scores_813', 'embedding_mean_986', 
+                        'embedding_mean_181', 'embedding_mean_181,embedding_mean_698', 
+                        'embedding_mean_210,embedding_mean_619,embedding_mean_698', 
+                        'embedding_mean_619,embedding_mean_698', 'embedding_std_793', 'embedding_mean_174', 
+                        'scores_813', 'embedding_mean_308', 'embedding_std_251', 'embedding_mean_586'))
+write_tsv(peaks, 'output/candidate_info/mlm_20260312/peaks_all_traits.tsv')
