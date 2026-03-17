@@ -38,6 +38,14 @@ high_err_preds <- preds_pctd_features %>%
   filter(label > 75) %>% 
   filter(predicted < 10) 
 
+pctd_pred_hist <- ggplot(preds_pctd_features, aes(predicted)) + 
+  geom_histogram()
+pctd_pred_hist
+
+pctd_hist <- ggplot(pctd, aes(score_average)) + 
+  geom_histogram()
+pctd_hist
+
 fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
@@ -222,7 +230,7 @@ embeddings_aamu <- read_csv('output/sam3_embeddings_aamu.csv') %>%
            str_remove('-05_00\\.jpg')) %>% 
   left_join(idx_aamu, join_by(plotNumber))
 
-idx_unl <- read_csv('data/ne2025/SbDiv_ne2025_fieldindex.csv') #%>% 
+idx_unl <- read_csv('data/ne2025/SbDiv_ne2025_fieldindex.csv') %>% 
   select(!genotype)
 pctd <- read_csv('data/final_disease_scores.csv') %>% 
   mutate(image_id = str_remove(image_path, '-05_00_leaf.png'))
@@ -232,7 +240,8 @@ embeddings_all <- embeddings %>%
   left_join(idx_unl, join_by(plotNumber)) %>% 
   mutate(image_id = basename(image_path) %>% 
            str_remove('-05_00_[0-9]\\.(png|npz)') %>%
-           str_remove('-05_00\\.jpg')) %>%
+           str_remove('-05_00\\.jpg') %>% 
+           str_remove('-05_00')) %>%
   bind_rows(embeddings_fvsu, embeddings_aamu) %>% 
   filter(image_id %in% pctd$image_id) %>% 
   mutate(genotype = str_replace(genotype, 'PI ', 'PI') %>% 

@@ -37,3 +37,30 @@ for(grp in trait_groups)
     write_csv(sig_markers, str_c('output/candidate_info/mlm_20260312/', grp, '/', trait, '_significant_markers.csv'))
   }
 }
+
+all_sig_markers <- tibble()
+sig_marker_files <- Sys.glob('output/candidate_info/mlm_20260312/*/*_significant_markers.csv')
+
+for(f in sig_marker_files)
+{
+  df <- read_csv(f)
+  if(nrow(df) > 0)
+  {
+    df <- df %>% 
+      mutate(grp = str_split_i(f, fixed('/'), 4), 
+             trait = str_split_i(f, fixed('/'), 5) %>% 
+               str_remove('_significant_markers.csv'))
+    all_sig_markers <- bind_rows(all_sig_markers, df)
+  }
+}
+
+write_csv(all_sig_markers, 'output/candidate_info/mlm_20260312/all_significant_markers.csv')
+plotManhattan(all_sig_markers, sig = MLM_P, multitrait = FALSE, resampling = FALSE, species = 'sorghum')
+window_size <- 1e6
+peaks <- read_csv('output/candidate_info/mlm_20260312/peaks_all_traits.csv') %>% 
+  rowwise() %>% 
+  mutate(window_start = case_when(pLength >= window_size ~ pStart, 
+                                  .default = max(0, POS - (window_size/2))), 
+         window_end = case_when(pLength >= window_size ~ pStop, 
+                                .default = POS + (window_size / 2)))
+write_csv(peaks, 'output/candidate_info/mlm_20260312/peaks_all_traits.csv')
