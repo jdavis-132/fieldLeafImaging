@@ -58,7 +58,12 @@ df_field_index <- read_csv(field_index) %>%
 df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
-lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
+# lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
+lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466", 
+             "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768", 
+             "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",  
+             "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308", 
+             "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
 
 df_winsor <- df_combined
 for(lv in lv_cols)
@@ -66,31 +71,31 @@ for(lv in lv_cols)
   df_winsor <- winsorize(df_winsor, lv, winsor_strength, 1 - winsor_strength)
 }
 
-if(phenotype_source=='image')
-{
-  # calculate PCs
-  pcs <- getPCScores(df_winsor, (matches(LV_prefix) & where(~is.numeric(.x) &&
-                                        isTRUE(var(.x, na.rm = TRUE) != 0))))
-  
-  # winsorize PCs
-  df_winsorpc <- pcs %>%
-    rename_with(~str_c(out_prefix, '_', .x), .cols=contains('PC'))
-  pc_cols <- colnames(df_winsorpc)[str_detect(colnames(df_winsorpc), 'PC')]
-  for(pc in pc_cols)
-  {
-    df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
-  }
-  # add to df
-  df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
-  
-  df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
-  write_csv(df, str_c('output/', out_prefix, '_rf_predictors.csv'))
-  response_vars <- c(lv_cols, pc_cols)
-}else
-{
+# if(phenotype_source=='image')
+# {
+#   # calculate PCs
+#   pcs <- getPCScores(df_winsor, (matches(LV_prefix) & where(~is.numeric(.x) &&
+#                                         isTRUE(var(.x, na.rm = TRUE) != 0))))
+#   
+#   # winsorize PCs
+#   df_winsorpc <- pcs %>%
+#     rename_with(~str_c(out_prefix, '_', .x), .cols=contains('PC'))
+#   pc_cols <- colnames(df_winsorpc)[str_detect(colnames(df_winsorpc), 'PC')]
+#   for(pc in pc_cols)
+#   {
+#     df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
+#   }
+#   # add to df
+#   df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
+#   
+#   df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
+#   write_csv(df, str_c('output/', out_prefix, '_rf_predictors.csv'))
+#   response_vars <- c(lv_cols, pc_cols)
+# }else
+# {
   df <- df_winsor
   response_vars <- lv_cols
-}
+# }
 
 # broad-sense variance partitioning 
 # vp <- tibble()
@@ -120,10 +125,10 @@ blues <- blues %>%
   rename(genotype = genotype_markers)
 
 blues_winsor <- blues
-# for(v in response_vars)
-# {
-#   blues_winsor <- winsorize(blues_winsor, v, winsor_strength, 1 - winsor_strength)
-# }
+for(v in response_vars)
+{
+  blues_winsor <- winsorize(blues_winsor, v, winsor_strength, 1 - winsor_strength)
+}
 write_csv(blues_winsor, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)

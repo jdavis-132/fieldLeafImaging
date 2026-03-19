@@ -3,8 +3,8 @@ set -e  # Exit on error
 set -x  # Print commands (for debugging)
 
 # manual phenos
-Rscript src/R/LV_quantGen.R -manual -data/manual/scores_813.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -score_average -scores_813 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/scores_813_quantgen.Rout 2>&1
-Rscript src/R/LV_quantGen.R -manual -data/manual/scores_828.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -score_average -scores_828 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/scores_828_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -manual -data/manual/scores_813.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -score_average -scores_813 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/scores_813_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -manual -data/manual/scores_828.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -score_average -scores_828 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/scores_828_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -manual -data/manual/SbDiv_ne2025_FT_clean.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -days_to_flower -ft -0.01 -data/ne2025/genotype_alignment_reseq.csv > logs/ft_quantgen.Rout 2>&1
 
 # run quantgen
@@ -53,7 +53,7 @@ Rscript src/R/LV_quantGen.R -manual -data/manual/scores_828.csv -data/ne2025/SbD
 # remove senesced leaves
 #Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding_mean -sam3_mean_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/sam3_mean_rs_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding_std -sam3_std_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/sam3_std_rs_quantgen.Rout 2>&1
-#Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/sam3_rs_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/sam3_rs_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -manual -data/ne2025/pctd_senesced_removed.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -pctd -pctd_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/pctd_rs_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/dinov2_features.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -feature -dinov2_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/dinov2_rs_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_143328_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae1_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/ae1_rs_quantgen.Rout 2>&1
