@@ -115,15 +115,15 @@ if(length(response_vars) > 1)
 }
 blues <- blues %>% 
   inner_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
-  filter(!is.na(genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
   select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
 
 blues_winsor <- blues
-for(v in response_vars)
-{
-  blues_winsor <- winsorize(blues_winsor, v, winsor_strength, 1 - winsor_strength)
-}
+# for(v in response_vars)
+# {
+#   blues_winsor <- winsorize(blues_winsor, v, winsor_strength, 1 - winsor_strength)
+# }
 write_csv(blues_winsor, str_c('output/', out_prefix, '_blues.csv'))
 write.table(unique(blues$genotype), str_c('output/', out_prefix, '_genotypes_keep.txt'), 
             sep = '\t', quote = FALSE, col.names = FALSE, row.names = FALSE)
