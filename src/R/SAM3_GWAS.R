@@ -187,7 +187,7 @@ rmip_selected <- rmip %>%
 plotManhattan(rmip_selected, RMIP, multitrait = TRUE, trait = label, threshold = 0.2, 
               colors = paletteer_d("RColorBrewer::Paired", n_features),
               species = 'sorghum', theme = theme_use)
-ggsave('output/selected_embeddings_farmcpu.png', width = 5, height = 2.5, dpi = 1000, 
+ggsave('output/selected_embeddings_farmcpu.png', width =11.63/2, height = 8.02/2, dpi = 1000, 
        bg = 'transparent')
 
 idx_fvsu <- read_csv('data/fvsu2025/FVSU_SAP_BAP.csv') %>% 
@@ -589,7 +589,7 @@ chr2_793_fvsu <- filter(embeddings_selected, SNP==snps_selected[2] & location=='
                     guide = NULL) +  
   theme_use
 chr2_793_fvsu
-ggsave(str_c('output/', snps_selected[2], '_793_fvsu_boxplot.png'), dpi = 1000, bg = 'transparent')
+ggsave(str_c('output/', snps_selected[2], '_793_fvsu_boxplot.png'), dpi = 1000, bg = 'transparent', width = 4.39/2, height = 7.39/2)
 
 chr9_251_aamu <- filter(embeddings_selected, SNP==snps_selected[4] & location=='AAMU') %>% 
   ggplot(aes(allele, embedding_std_251, fill = allele)) + 
@@ -599,7 +599,7 @@ chr9_251_aamu <- filter(embeddings_selected, SNP==snps_selected[4] & location=='
                          guide = NULL) + 
   theme_use
 chr9_251_aamu
-ggsave(str_c('output/', snps_selected[4], '_251_aamu_boxplot.png'), dpi = 1000, bg = 'transparent')
+ggsave(str_c('output/', snps_selected[4], '_251_aamu_boxplot.png'), dpi = 1000, bg = 'transparent', width = 4.39/2, height = 7.39/2)
 
 chr6_768_fvsu <- filter(embeddings_selected, SNP==snps_selected[3] & location=='FVSU') %>% 
   ggplot(aes(allele, embedding_mean_768, fill = allele)) + 
