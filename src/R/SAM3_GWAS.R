@@ -1,3 +1,4 @@
+setwd('fieldLeafImaging/')
 library(tidyverse)
 source('src/R/Functions.R')
 library(paletteer)
@@ -55,6 +56,14 @@ fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
 
+high_fi <- fi_pctd_features %>% 
+  arrange(desc(avg_fi))
+high_fi <- high_fi[1:30, ]
+
+high_fi_features <- str_c('embedding', high_fi$stat, high_fi$embedding_num, sep = '_')
+
+embeddings <- read_csv('output/sam3_rs_rf_predictors.csv')
+
 fi_plot <- ggplot(fi_pctd_features, aes(avg_fi)) + 
   geom_histogram(fill = paletteer_d('MetBrewer::Archambault', 6)[3]) +
   labs(x = 'Average Feature Importance (RF 5-fold CV)', 
@@ -65,14 +74,6 @@ fi_plot <- ggplot(fi_pctd_features, aes(avg_fi)) +
 fi_plot
 ggsave('output/FI_distribution.png', dpi = 2000, plot = fi_plot, height = 2.75, width = 5)
 
-
-high_fi <- fi_pctd_features %>% 
-  arrange(desc(avg_fi))
-high_fi <- high_fi[1:30, ]
-
-high_fi_features <- str_c('embedding', high_fi$stat, high_fi$embedding_num, sep = '_')
-
-embeddings <- read_csv('output/sam3_rs_rf_predictors.csv')
 high_fi_embeddings <- embeddings %>% 
   select(any_of(high_fi_features)) %>% 
   as.matrix()
