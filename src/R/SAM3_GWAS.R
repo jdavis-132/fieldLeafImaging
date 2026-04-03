@@ -21,6 +21,23 @@ theme_use <- theme_minimal() +
         panel.grid = element_blank(), 
         panel.background = element_blank())
 
+fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
+  pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
+  group_by(feature) %>%
+  summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
+  arrange(desc(avg_fi)) %>% 
+  mutate(feature = as.numeric(feature)) %>% 
+  mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
+         embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
+
+high_fi <- fi_pctd_features %>% 
+  arrange(desc(avg_fi))
+high_fi <- high_fi[1:30, ]
+
+high_fi_features <- str_c('embedding', high_fi$stat, high_fi$embedding_num, sep = '_')
+
+embeddings <- read_csv('output/sam3_rs_rf_predictors.csv')
+
 preds_pctd_features <- read_csv('output/rf/predictions/sam3_embedding_pctd_all_predictions_rf.csv')
 spearman_r2 <- cor(preds_pctd_features[['label']], preds_pctd_features[['predicted']], use = 'complete.obs', method = 'spearman')^2
 sam3_preds_plot <- ggplot(preds_pctd_features, aes(label, predicted)) + 
@@ -46,23 +63,6 @@ pctd_pred_hist
 pctd_hist <- ggplot(pctd, aes(score_average)) + 
   geom_histogram()
 pctd_hist
-
-fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
-  pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
-  group_by(feature) %>%
-  summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
-  arrange(desc(avg_fi)) %>% 
-  mutate(feature = as.numeric(feature)) %>% 
-  mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
-         embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
-
-high_fi <- fi_pctd_features %>% 
-  arrange(desc(avg_fi))
-high_fi <- high_fi[1:30, ]
-
-high_fi_features <- str_c('embedding', high_fi$stat, high_fi$embedding_num, sep = '_')
-
-embeddings <- read_csv('output/sam3_rs_rf_predictors.csv')
 
 fi_plot <- ggplot(fi_pctd_features, aes(avg_fi)) + 
   geom_histogram(fill = paletteer_d('MetBrewer::Archambault', 6)[3]) +
@@ -134,15 +134,16 @@ splitDataFrameKmer <- function(data, out, genotype_alignment)
   }
 }
 splitDataFrameKmer(sam3_rs_blues, out = 'output/sam3_rs_high_fi_blues_', kmer_genotype_alignment)
-# all_farmcpu_hits <- summariseSignals_PANICLE('output/gwas/sam3/farmcpu/GWAS_embedding*') %>%
-#   mutate(stat = str_split_i(filename, '_', 3),
-#          feature = str_split_i(filename, '_', 4) %>%
-#            as.numeric(),
-#          iter = str_split_i(filename, '_', 5) %>%
-#            as.numeric())
-# write_csv(all_farmcpu_hits, 'output/sam3_high_fi_allfarmcpuhits.csv')
 
-all_farmcpu_hits <- read_csv('output/sam3_high_fi_allfarmcpuhits.csv')
+# all_farmcpu_hits <- summariseSignals_PANICLE('output/gwas/sam3/farmcpu/farmcpu_20260324/GWAS_embedding*') %>%
+#   mutate(stat = str_split_i(filename, '_', 4),
+#          feature = str_split_i(filename, '_', 5) %>%
+#            as.numeric(),
+#          iter = str_split_i(filename, '_', 6) %>%
+#            as.numeric())
+# write_csv(all_farmcpu_hits, 'output/sam3_20260324_allfarmcpuhits.csv')
+
+all_farmcpu_hits <- read_csv('output/sam3_20260324_allfarmcpuhits.csv')
 
 rmip <- all_farmcpu_hits %>% 
   group_by(SNP, CHROM, POS, feature, stat) %>% 
@@ -175,7 +176,9 @@ write_csv(rmip_0.2, 'output/candidate_info/embeddings/embedding_significant_SNPs
 #   mutate(CHROM = str_remove(CHROM, 'Chr') %>% 
 #            as.numeric())
 
-select_features <- intersect(head(rmip$embedding, n=20), head(high_fi_features, n=20))
+# select_features <- intersect(head(rmip$embedding, n=20), head(high_fi_features, n=20))
+select_features <- c("embedding_mean_108", 'embedding_mean_174', 'embedding_std_251', 'embedding_std_466', 'embedding_mean_586', 
+                     'embedding_mean_698', 'embedding_mean_768', 'embedding_std_793', 'embedding_std_976')
 n_features <- length(select_features)
 rmip_selected <- rmip %>% 
   filter(embedding %in% select_features) %>% 

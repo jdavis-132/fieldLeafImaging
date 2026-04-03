@@ -13,3 +13,4 @@ all_fvsu_images <- read_tsv('data/fvsu2025/image_files.txt', col_names = 'image_
 
 unique_image_ids <- unique(all_fvsu_images$image_id)
 potential_problem_images <- unique_image_ids[c(447, 1541)]
+
