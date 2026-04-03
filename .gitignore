@@ -50,3 +50,4 @@ output/ae7_rf_predictors.csv
 *.bed
 *.grm.bin
 *.grm.details
+figures/main/.DS_Store
