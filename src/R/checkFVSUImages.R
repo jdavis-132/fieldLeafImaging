@@ -14,3 +14,9 @@ all_fvsu_images <- read_tsv('data/fvsu2025/image_files.txt', col_names = 'image_
 unique_image_ids <- unique(all_fvsu_images$image_id)
 potential_problem_images <- unique_image_ids[c(447, 1541)]
 
+images_keep <- all_fvsu_images %>% 
+  group_by(image_id) %>% 
+  summarise(image_path = first(image_path)) %>% 
+  pull(image_path)
+write.table(images_keep, 'data/fvsu2025/unique_images.txt', quote = FALSE, sep = '\t', row.names = FALSE, col.names = FALSE)
+write.table(unique_image_ids, 'data/fvsu2025/unique_image_ids.txt', quote = FALSE, sep = '\t', row.names = FALSE, col.names = FALSE)
