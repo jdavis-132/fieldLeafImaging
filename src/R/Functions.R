@@ -1,6 +1,7 @@
 library(tidyverse)
 devtools::source_url('https://github.com/jdavis-132/hips/raw/refs/heads/master/src/Functions.R')
 source('../widiv-transcriptome/src/Functions.R')
+source('https://github.com/jschnable/parallelgwas/raw/refs/heads/main/manhattanPlot.R')
 
 printScreePlot <- function(prcomp_obj, nPCs = ncol(prcomp_obj$rotation))
 {
@@ -168,4 +169,5 @@ getCandidateGenes <- function(annotations, outdir, chr, pos, window)
     filter(CHROM==chr &
              (between(start, window_start, window_end) | between(end, window_start, window_end)))
   write_csv(annotation_filtered, str_c(outdir, 'chr', chr, '_', pos, '_candidates_', (window/1e3), 'kb.csv'))
+  return(annotation_filtered)
 }
