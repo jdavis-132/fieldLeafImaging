@@ -118,7 +118,7 @@ getBLUEs <- function(df, response, genotype, x, y, covariates_fixed = NULL, cova
     }
   }
   model <- lm(as.formula(formula), data = df)
-  intercept <- model$coefficients['Intercept']
+  intercept <- model$coefficients['(Intercept)']
   blues <- model$coefficients %>% 
     as_tibble(rownames = 'genotype') %>% 
     filter(!str_detect(genotype, x) & !str_detect(genotype, y) & !str_detect(genotype, 'Intercept')) %>% 

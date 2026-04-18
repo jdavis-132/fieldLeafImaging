@@ -58,12 +58,12 @@ df_field_index <- read_csv(field_index) %>%
 df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
-lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
-# lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466", 
-#              "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768", 
-#              "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",  
-#              "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308", 
-#              "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
+# lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
+lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466",
+             "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768",
+             "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",
+             "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308",
+             "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
 
 df_winsor <- df_combined
 for(lv in lv_cols)
