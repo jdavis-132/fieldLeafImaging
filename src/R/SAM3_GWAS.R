@@ -4,7 +4,7 @@ source('src/R/Functions.R')
 library(paletteer)
 library(ggcorrplot)
 library(ape)
-source('../parallelgwas/manhattanPlot.R')
+# source('../parallelgwas/manhattanPlot.R')
 
 theme_use <- theme_minimal() +
   theme(axis.text.x = element_text(size = 9, color = 'black', margin = margin(0, 0, 0, 0), 
