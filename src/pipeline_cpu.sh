@@ -65,4 +65,8 @@ set -x  # Print commands (for debugging)
 #Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260110_045517_standard_lr0.001_bs32_disease_weighted_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae8_rs -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/ae8_rs_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/rf/sam3_rs_embedding_pctd_senesced_removed_predictions_rf.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -predicted -pctd_rs_pred -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/pctd_rs_pred_quantgen.Rout 2>&1
 
-Rscript src/R/LV_quantGen.R -image -data/ne2025/phenotype_data_NEBRASKA_FINAL_GWAS.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -leaf_width_corrected_px -leaf_width -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv >logs/leaf_width_quantgen.Rout 2>&1
+#Rscript src/R/LV_quantGen.R -image -data/ne2025/phenotype_data_NEBRASKA_FINAL_GWAS.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -leaf_width_corrected_px -leaf_width -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv >logs/leaf_width_quantgen.Rout 2>&1
+
+#FVSU + AAMU embeddings 
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_fvsu.csv -data/fvsu2025/fvsu_field_index.csv -embedding -sam3_fvsu -0.01 -data/genotype_conversion_table.csv -data/fvsu2025/image_ids_keep.txt >logs/fvsu_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_aamu.csv -data/aamu2025/aamu_field_index.csv -embedding -sam3_aamu -0.01 -data/genotype_conversion_table.csv -data/aamu2025/image_ids_keep.txt >logs/aamu_quantgen.Rout 2>&1
