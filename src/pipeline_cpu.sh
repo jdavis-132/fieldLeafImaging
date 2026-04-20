@@ -68,6 +68,6 @@ set -x  # Print commands (for debugging)
 #Rscript src/R/LV_quantGen.R -image -data/ne2025/phenotype_data_NEBRASKA_FINAL_GWAS.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -leaf_width_corrected_px -leaf_width -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv >logs/leaf_width_quantgen.Rout 2>&1
 
 #FVSU + AAMU embeddings with intercept added back
-Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_fvsu.csv -data/fvsu2025/fvsu_field_index.csv -embedding -sam3_fvsu -0.01 -data/genotype_conversion_table.csv -data/fvsu2025/image_ids_keep.txt >logs/fvsu_quantgen.Rout 2>&1
-Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_aamu.csv -data/aamu2025/aamu_field_index.csv -embedding -sam3_aamu -0.01 -data/genotype_conversion_table.csv -data/aamu2025/image_ids_keep.txt >logs/aamu_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_fvsu.csv -data/fvsu2025/fvsu_field_index.csv -embedding -sam3_fvsu -0.01 -data/genotype_conversion_table.tsv -data/fvsu2025/image_ids_keep.txt >logs/fvsu_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_aamu.csv -data/aamu2025/aamu_field_index.csv -embedding -sam3_aamu -0.01 -data/genotype_conversion_table.tsv -data/aamu2025/image_ids_keep.txt >logs/aamu_quantgen.Rout 2>&1
 Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3_rs_intercept -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv > logs/sam3_rs_intercept_quantgen.Rout 2>&1

@@ -17,7 +17,7 @@ winsor_strength <- as.numeric(str_remove(args[length(args) - 2], fixed('-')))
 genotype_alignment <- str_remove(args[length(args) - 1], fixed('-'))
 images_keep <- str_remove(args[length(args)], fixed('-')) # file with list of images to keep, excluding end of basename beginning from '-05_00_[tag].png, one per line
 
-genotype_alignment <- read_csv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>%
+genotype_alignment <- read_tsv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>%
   mutate(genotype_idx = str_remove_all(genotype_idx, ' ')) %>%
   distinct()
 
@@ -120,7 +120,9 @@ if(length(response_vars) > 1)
   }
 }
 blues <- blues %>% 
-  inner_join(genotype_alignment, join_by(genotype==genotype_idx)) %>% 
+  full_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+	   .default = genotype_markers)) %>% 
   filter(!is.na(genotype_markers)) %>%
   select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
