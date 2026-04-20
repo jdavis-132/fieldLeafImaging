@@ -58,6 +58,7 @@ df_field_index <- read_csv(field_index) %>%
 df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
+
 # lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
 lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466",
              "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768",
