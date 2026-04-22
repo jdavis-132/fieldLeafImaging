@@ -120,7 +120,7 @@ if(length(response_vars) > 1)
   }
 }
 blues <- blues %>% 
-  full_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
   mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
 	   .default = genotype_markers)) %>% 
   filter(!is.na(genotype_markers)) %>%
