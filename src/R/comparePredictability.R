@@ -16,7 +16,7 @@ label_list <- rep(c('all', 'senesced_removed'), each = 22)
   
 for(i in c(1:44))
 {
-  df <- read_csv(str_c('output/rf/predictions/', model_list[i], '_', predictor_list[i], '_pctd_', label_list[i], '_predictions_rf.csv'))
+  df <- read_csv(str_c('output/rf/', model_list[i], '_', predictor_list[i], '_pctd_', label_list[i], '_predictions_rf.csv'))
   getRFPredictability(df, model_descriptor = str_c(model_list[i], predictor_list[i], sep = ':'))
 }
 
