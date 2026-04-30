@@ -107,7 +107,7 @@ def main():
     print("Model loaded successfully!")
 
     # Load a test image
-    test_image_dir = Path("/home/schnable/Documents/fieldLeafImaging/data/test_input")
+    test_image_dir = Path("/home/schnable/Documents/fieldLeafImaging/figures/supplemental/")
     image_files = list(test_image_dir.glob("*.jpg"))
 
     if not image_files:

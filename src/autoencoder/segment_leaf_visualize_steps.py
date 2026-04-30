@@ -2,7 +2,7 @@ import argparse
 from pathlib import Path
 import cv2
 import numpy as np
-
+import matplotlib.pyplot as plt
 
 def clamp_seed(x: int, y: int, width: int, height: int) -> tuple[int, int]:
     """Keep the seed inside the image bounds."""
@@ -57,7 +57,7 @@ def largest_component_touching_sides(binary_mask: np.ndarray) -> tuple[int | Non
 
     return best_label, (labels == best_label)
 
-image_path ='output/1622_LeafPhotoA_2025-09-09 09_56_01.433-05_00.jpg'
+image_path ='figures/supplemental/1151_LeafPhotoA_2025-09-08 16_59_29.011-05_00.jpg'
 tolerance1=50
 tolerance2=50
 down_from_top=750
@@ -80,14 +80,14 @@ working_rgb = cv2.cvtColor(working, cv2.COLOR_BGR2RGB)
 plt.imshow(working_rgb)
 plt.scatter(points[:, 0], points[:, 1], marker = 'o', s=50, color='cyan')
 plt.axis('off')
-plt.savefig('output/flood_remove.png', bbox_inches='tight', pad_inches=0)
+plt.savefig('figures/supplemental/flood_remove.png', bbox_inches='tight', pad_inches=0)
 
 foreground_mask = np.any(working != 0, axis=2).astype(np.uint8)
 _, leaf_mask = largest_component_touching_sides(foreground_mask)
 
 binary_mask = leaf_mask.astype(np.uint8)
 image_connected = image * binary_mask[:, :, np.newaxis]
-cv2.imwrite('output/largest_connected_component.png', image_connected)
+cv2.imwrite('figures/supplemental/largest_connected_component.png', image_connected)
 
 leaf_mask[:, :trim_left] = False
 leaf_mask[:, width - trim_right :] = False
@@ -107,4 +107,4 @@ leaf_mask = labels == best_label
 
 binary_mask = (leaf_mask).astype(np.uint8)
 image_connected = image * binary_mask[:, :, np.newaxis]
-cv2.imwrite('output/final_mask.png', image_connected)
+cv2.imwrite('figures/supplemental/final_mask.png', image_connected)
