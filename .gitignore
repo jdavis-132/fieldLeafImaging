@@ -51,3 +51,4 @@ output/ae7_rf_predictors.csv
 *.grm.bin
 *.grm.details
 figures/main/.DS_Store
+figures/supplemental/high_fi_image_grids.tar
