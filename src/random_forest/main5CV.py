@@ -5,15 +5,16 @@ from sklearn.model_selection import KFold
 from sklearn.model_selection import GroupKFold
 from sklearn.metrics import mean_squared_error
 from sklearn import preprocessing
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(__file__).parent))
 from modelClass import base, RF
 import argparse
-from pathlib import Path
 
 parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
-parser.add_argument("values_data", type=Path, help="Path to csv with values to predict (left dataframe).")
-parser.add_argument("features_data", type=Path, help="Path to csv with predictor features (right dataframe).")
-parser.add_argument("--join_column", type=str, required=True, help="Column name to join dataframes by.")
+parser.add_argument("input_data", type=Path, help="Path to csv with values to predict and predictor values")
 parser.add_argument("--k", type=int, default=5, help="Number of folds.")
+parser.add_argument('--image_id_col', type=str, default='image_name', help="Image containing unique image IDs for traceability & debugging")
 parser.add_argument("--predictor_prefix", type=str, default='feature', help="Substring of predictor column names.")
 parser.add_argument("--label", type=str, default='score_average', help="Column containing target labels to predict.")
 parser.add_argument("--group", type=str, default='genotype', help="Column containing grouping information.")
@@ -23,21 +24,8 @@ args = parser.parse_args()
 # Number of folds for CV
 k = args.k
 
-# Load datasets
-# Left dataframe: values to predict
-values_df = pd.read_csv(args.values_data, low_memory=False)
-# Right dataframe: predictor features
-features_df = pd.read_csv(args.features_data, low_memory=False)
-
-# Perform left join (similar to R's left_join from tidyverse)
-data = values_df.merge(features_df, on=args.join_column, how='left', suffixes=('', '_right'))
-
-# Handle column name conflicts from merge
-# If the group column has _right suffix, it means there was a conflict - keep the left version
-if args.group + '_right' in data.columns:
-    # The column from left dataframe (values_df) is already named correctly
-    # Just drop the right version
-    data = data.drop(columns=[args.group + '_right'])
+# Load dataset
+data = pd.read_csv(input_data)
 
 data = data.dropna(subset=[args.group, args.label])
 predictions_ds = pd.DataFrame()
@@ -59,7 +47,7 @@ for train_idx, test_idx in splits:
     train_response = train_ds[args.label]
         
     test_features = test_ds[[col for col in data.columns if args.predictor_prefix in col]]
-        
+    test_images = test_ds[args.image_id_col]    
     test_features = preprocessing.StandardScaler().fit_transform(test_features)
     test_response = test_ds[args.label]
         
@@ -70,7 +58,8 @@ for train_idx, test_idx in splits:
     predictions = model.predict(test_features)
     predictions = predictions.flatten()
         
-    fold_predictions = pd.DataFrame({'label': test_response,
+    fold_predictions = pd.DataFrame({args.image_id_col: test_images,
+				     'label': test_response,
                                      'predicted': predictions})
     predictions_ds = pd.concat([predictions_ds, fold_predictions])
         
