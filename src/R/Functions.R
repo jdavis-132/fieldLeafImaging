@@ -137,15 +137,15 @@ getRFPredictability <- function(predictions_df, model_descriptor = NULL)
   plot <- ggplot(predictions_df, aes(label, predicted)) + 
     # geom_bin2d() + 
     geom_point() +
-    annotate(geom = 'text', x = 10, y=35, label = str_c('R^2==', spearman_r2), parse = TRUE) +
+    # annotate(geom = 'text', x = 10, y=35, label = str_c('R^2==', spearman_r2), parse = TRUE) +
     # scale_fill_viridis(direction = -1) +
     # guides(fill = guide_colorbar(barwidth = 10)) +
-    labs(x = 'Observed Percent Diseased Area\n(ExG Threshold)', 
-         y = 'Predicted Percent Disease Area\n(RF)', 
+    labs(x = 'Observed', 
+         y = 'Predicted', 
          title = model_descriptor) + 
     theme_use 
   print(plot)
-  return(plot)
+  return(spearman_r2)
 }
 
 summariseSignals_PANICLE <- function(path)
