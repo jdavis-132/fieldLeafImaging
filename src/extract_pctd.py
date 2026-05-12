@@ -16,7 +16,7 @@ from PIL import Image, ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 
-THRESHOLD_FILE = Path(__file__).resolve().parents[1] / "threshold_info.json"
+THRESHOLD_FILE = Path('/home/schnable/Documents/fieldLeafImaging/src/threshold_info.json')
 with THRESHOLD_FILE.open("r") as f:
     threshold_config = json.load(f)
 

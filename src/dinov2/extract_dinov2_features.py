@@ -221,7 +221,7 @@ class DINOv2FeatureExtractor:
         return features_list, metadata_list, failed_images
 
 
-def find_images(base_pattern="data/ne2025/device*"):
+def find_images(base_pattern="data/processed/ne2025/device*"):
     """
     Find all .jpg images matching the pattern.
 
