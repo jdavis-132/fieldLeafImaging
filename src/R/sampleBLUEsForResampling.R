@@ -1,5 +1,5 @@
 library(tidyverse)
-
+source('src/R/Functions.R')
 high_fi_features <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
                       "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
                       "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
@@ -14,7 +14,7 @@ blues <- read_csv('output/sam3_blues.csv')
 samples <- select(blues, c(genotype, all_of(high_fi_features)))
 
 n_samples <- 100
-n_obs <- as.integer(nrow(blues_select))
+n_obs <- as.integer(nrow(samples))
 obs_set_na <- as.integer((1 - 0.9)*n_obs)
 
 for(trait in high_fi_features)
@@ -29,3 +29,4 @@ for(trait in high_fi_features)
 
 write_csv(samples, 'output/sam3_blues_highfi_samples.csv')
 
+splitDataFrame(blues, contains('embedding'), 'output/sam3_blues_', 8)

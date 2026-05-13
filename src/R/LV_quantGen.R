@@ -17,7 +17,7 @@ winsor_strength <- as.numeric(str_remove(args[length(args) - 2], fixed('-')))
 genotype_alignment <- str_remove(args[length(args) - 1], fixed('-'))
 images_keep <- str_remove(args[length(args)], fixed('-')) # file with list of images to keep, excluding end of basename beginning from '-05_00_[tag].png, one per line
 
-genotype_alignment <- read_tsv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 1) %>%
+genotype_alignment <- read_tsv(genotype_alignment, col_names = c('genotype_idx', 'genotype_markers'), skip = 0) %>%
   mutate(genotype_idx = str_remove_all(genotype_idx, ' ')) %>%
   distinct()
 
@@ -59,20 +59,20 @@ df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
 
-# lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
+lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
 # lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466",
 #              "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768",
 #              "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",
 #              "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308",
              # "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
-lv_cols <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
-             "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
-             "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
-             "embedding_mean_698", "embedding_mean_165", "embedding_mean_37", "embedding_mean_582", "embedding_mean_214", "embedding_mean_792",
-             "embedding_std_606", "embedding_mean_930", "embedding_mean_734", "embedding_mean_108", "embedding_mean_560", "embedding_std_166",
-             "embedding_std_983", "embedding_std_981", "embedding_mean_197", "embedding_std_817", "embedding_std_132", "embedding_std_82",
-             "embedding_mean_950", "embedding_mean_119", "embedding_std_128", "embedding_mean_139", "embedding_std_76", "embedding_std_839",
-             "embedding_std_326", "embedding_mean_842", "embedding_std_567", "embedding_mean_237", "embedding_std_793")
+#lv_cols <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
+#             "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
+#             "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
+#             "embedding_mean_698", "embedding_mean_165", "embedding_mean_37", "embedding_mean_582", "embedding_mean_214", "embedding_mean_792",
+#             "embedding_std_606", "embedding_mean_930", "embedding_mean_734", "embedding_mean_108", "embedding_mean_560", "embedding_std_166",
+#             "embedding_std_983", "embedding_std_981", "embedding_mean_197", "embedding_std_817", "embedding_std_132", "embedding_std_82",
+#             "embedding_mean_950", "embedding_mean_119", "embedding_std_128", "embedding_mean_139", "embedding_std_76", "embedding_std_839",
+#             "embedding_std_326", "embedding_mean_842", "embedding_std_567", "embedding_mean_237", "embedding_std_793")
 
 df_winsor <- df_combined
 for(lv in lv_cols)

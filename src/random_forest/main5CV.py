@@ -25,7 +25,7 @@ args = parser.parse_args()
 k = args.k
 
 # Load dataset
-data = pd.read_csv(input_data)
+data = pd.read_csv(args.input_data)
 
 data = data.dropna(subset=[args.group, args.label])
 predictions_ds = pd.DataFrame()
