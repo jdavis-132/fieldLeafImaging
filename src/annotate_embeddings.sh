@@ -11,34 +11,51 @@ mkdir -p "$OUTBASE"
 python3 - <<'PYEOF'
 import csv
 import os
+import re
 import shutil
 import subprocess
 import sys
 
 CSV      = "output/sam3_embeddings.csv"
-OUTBASE  = "output/embedding_annotation_lowFI"
+OUTBASE  = "output/embedding_annotation_lowFI_highH"
 N        = 16
 
 EMBEDDINGS = [
-    "embedding_std_416",  "embedding_std_706",  "embedding_std_722",  "embedding_std_654",
-    "embedding_std_825",  "embedding_std_992",  "embedding_std_173",  "embedding_mean_964",
-    "embedding_std_300",  "embedding_std_302",  "embedding_std_69",   "embedding_std_135",
-    "embedding_mean_451", "embedding_mean_799", "embedding_mean_632", "embedding_std_339",
-    "embedding_std_390",  "embedding_mean_721", "embedding_std_569",  "embedding_std_719",
-    "embedding_std_941",  "embedding_std_866",  "embedding_std_465",  "embedding_std_993",
-    "embedding_mean_865", "embedding_std_933",  "embedding_std_262",  "embedding_std_1004",
-    "embedding_std_536",  "embedding_std_12",   "embedding_std_716",  "embedding_std_429",
-    "embedding_mean_609", "embedding_mean_253", "embedding_std_35",   "embedding_std_36",
-    "embedding_std_14",   "embedding_std_672",  "embedding_std_227",  "embedding_std_51",
-    "embedding_std_192",  "embedding_std_437",  "embedding_std_190",  "embedding_std_393",
-    "embedding_std_198",  "embedding_std_798",  "embedding_std_84",
+    "embedding_std_488", "embedding_mean_402", "embedding_mean_633",
+    "embedding_std_345", "embedding_mean_806", "embedding_std_478",
+    "embedding_mean_653", "embedding_mean_372", "embedding_mean_42",
+    "embedding_mean_10"
 ]
+
+KEEP_FILES = {
+    "ne2025":   "data/ne2025/images_keep_all.csv",
+    "fvsu2025": "data/fvsu2025/image_ids_keep.txt",
+    "aamu2025": "data/aamu2025/image_ids_keep.txt",
+}
+
+def load_keep_set(path):
+    with open(path) as f:
+        return set(line.strip() for line in f if line.strip())
+
+keep_sets = {ds: load_keep_set(p) for ds, p in KEEP_FILES.items()}
+
+SUFFIX_RE = re.compile(r"-05_00_\d+\.png$")
+
+def image_id_from_path(image_path):
+    return SUFFIX_RE.sub("", os.path.basename(image_path))
+
+def keep_row(row):
+    path = row["image_path"]
+    for ds, keep in keep_sets.items():
+        if ds in path:
+            return image_id_from_path(path) in keep
+    return False
 
 print(f"Reading {CSV}...")
 with open(CSV, newline="") as f:
     reader = csv.DictReader(f)
-    rows = list(reader)
-print(f"  {len(rows)} rows loaded.")
+    rows = [r for r in reader if keep_row(r)]
+print(f"  {len(rows)} rows loaded (after keep-list filtering).")
 
 missing_cols = [e for e in EMBEDDINGS if e not in rows[0]]
 if missing_cols:

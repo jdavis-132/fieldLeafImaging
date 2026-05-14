@@ -10,23 +10,10 @@ high_fi_features <- c("embedding_std_930", "embedding_std_552", "embedding_std_9
                       "embedding_std_326", "embedding_mean_842", "embedding_std_567", "embedding_mean_237", "embedding_std_793")
 
 blues <- read_csv('output/sam3_blues.csv')
+splitDataFrame(blues, contains('embedding'), 'output/sam3_blues_', 100)
 
-samples <- select(blues, c(genotype, all_of(high_fi_features)))
-
-n_samples <- 100
-n_obs <- as.integer(nrow(samples))
-obs_set_na <- as.integer((1 - 0.9)*n_obs)
-
-for(trait in high_fi_features)
+for(f in high_fi_features)
 {
-  for(i in 1:n_samples)
-  {
-    samples <- samples %>% 
-      mutate('{trait}_{i}':= replace(.data[[trait]], sample(1:n_obs, obs_set_na), NA))
-  }
-  samples <- select(samples, !any_of(trait))
+  samplePhenotypesForResampling('output/sam3_blues.csv', genotype = 'genotype', trait = f, prop_keep = 0.9, n_samples = 100,
+                                samples_per_file = 100)
 }
-
-write_csv(samples, 'output/sam3_blues_highfi_samples.csv')
-
-splitDataFrame(blues, contains('embedding'), 'output/sam3_blues_', 8)
