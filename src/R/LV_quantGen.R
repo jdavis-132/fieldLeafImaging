@@ -65,7 +65,7 @@ lv_cols <- colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix)]
 #              "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",
 #              "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308",
              # "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
-#lv_cols <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
+# lv_cols <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
 #             "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
 #             "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
 #             "embedding_mean_698", "embedding_mean_165", "embedding_mean_37", "embedding_mean_582", "embedding_mean_214", "embedding_mean_792",
