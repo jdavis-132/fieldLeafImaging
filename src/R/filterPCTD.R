@@ -31,11 +31,25 @@ high_score_low_pctd <- combined %>%
 
 # write_csv(pctd_ne, 'data/ne2025/pctd_all.csv')
 pctd_ne_filt <- filter(pctd_ne, !(image_path %in% senesced))
+
+genotype_alignment <- read_tsv('data/genotype_conversion_table.tsv', col_names = c('genotype_idx', 'genotype_markers')) %>% 
+  mutate(genotype_idx = str_remove_all(genotype_idx, ' '))
+idx_ne <- read_csv('data/ne2025/SbDiv_ne2025_fieldindex.csv')
+pctd_sap135 <- pctd_ne_filt %>% 
+  left_join(idx_ne, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  filter(genotype=='PI576385')
 # write_csv(pctd_ne_filt, 'data/ne2025/pctd_senesced_removed.csv')
 
-pctd_fvsu <- filter(pctd_final, str_starts(image_path, '25') & str_detect(image_path, '2025-10'))
+# pctd_fvsu <- filter(pctd_final, str_starts(image_path, '25') & str_detect(image_path, '2025-10'))
 # write_csv(pctd_fvsu, 'data/fvsu2025/pctd_all.csv')
-pctd_aamu <- filter(pctd_final, !(image_path %in% c(pctd_ne$image_path, pctd_fvsu$image_path)))
+# pctd_aamu <- filter(pctd_final, !(image_path %in% c(pctd_ne$image_path, pctd_fvsu$image_path)))
 # write_csv(pctd_aamu, 'data/aamu2025/pctd_all.csv')
 
 images_keep_ne <- basename(pctd_ne$image_path) %>% 
@@ -96,20 +110,158 @@ proposedSampleSummaryPlots <- proposed1kSampleMetadata %>%
   summarise(images = n())
 write.table(proposed800Sample, 'output/ne2025_images_to_score_800.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
 
+vcf_sig <- read_tsv('output/all_sig_snps.recode.vcf', skip = 98)
+colnames(vcf_sig) <- c('CHROM', str_replace(colnames(vcf_sig)[2:length(colnames(vcf_sig))], 'SC', 'SC '))
+vcf_sig <- vcf_sig %>%
+  select(!c(QUAL, INFO, FORMAT, FILTER)) %>%
+  mutate(ID = str_c(CHROM, POS, REF, ALT, sep = ':')) %>%
+  pivot_longer(cols = !c(CHROM, POS, ID, REF, ALT), 
+               names_to = 'genotype', 
+               values_to = 'allele') %>% 
+  select(ID, genotype, allele) %>% 
+  pivot_wider(id_cols = genotype, 
+              names_from = ID, 
+              values_from = allele)
 
+idx_fvsu <- read_csv('data/fvsu2025/fvsu_field_index.csv')
+pctd_fvsu <- read_csv('data/fvsu2025/pctd_all.csv') %>%
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_fvsu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`, ExG_P20_disease_pct) %>% 
+  mutate(across(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+                ~case_when(.x %in% c("./.", ".", "0/1", "./.", "0/1", "./.", "./.") ~ NA, .default = .x))) %>%
+  filter(if_all(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), ~!is.na(.)))
 
 pctd_quantiles_fvsu <- quantile(pctd_fvsu$ExG_P20_disease_pct, probs = c(0, 0.33, 0.66, 1))
 quant1_fvsu <- filter(pctd_fvsu, ExG_P20_disease_pct < pctd_quantiles_fvsu[2])
 quant2_fvsu <- filter(pctd_fvsu, (ExG_P20_disease_pct >= pctd_quantiles_fvsu[2]) & (ExG_P20_disease_pct < pctd_quantiles_fvsu[3]))
 quant3_fvsu <- filter(pctd_fvsu, ExG_P20_disease_pct >= pctd_quantiles_fvsu[3])
 
-imageFVSUSample30 <- c(sample(quant1_fvsu$image_path, 10), sample(quant2_fvsu$image_path, 10), sample(quant3_fvsu$image_path, 10))
+# imageFVSUSample30 <- c(sample(quant1_fvsu$image_path, 10), sample(quant2_fvsu$image_path, 10), sample(quant3_fvsu$image_path, 10))
 # write.table(imageFVSUSample30, 'output/fvsu2025_images_to_score_30.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+imageFVSUSample30 <- read_csv('output/fvsu2025_images_to_score_30.csv', col_names = c('image_path')) %>% 
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_fvsu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`)  %>% 
+  mutate(across(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+                ~case_when(.x %in% c("./.", ".", "0/1", "./.", "0/1", "./.", "./.") ~ NA, .default = .x))) %>%
+  filter(if_all(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), ~!is.na(.)))
+
+quant1_fvsu_filt <- filter(quant1_fvsu, !(image_path %in% imageFVSUSample30$image_path))
+quant2_fvsu_filt <- filter(quant2_fvsu, !(image_path %in% imageFVSUSample30$image_path))
+quant3_fvsu_filt <- filter(quant3_fvsu, !(image_path %in% imageFVSUSample30$image_path))
+
+sample170_fvsu <- c(sample(quant1_fvsu_filt$image_path, 64), sample(quant2_fvsu_filt$image_path, 64), sample(quant3_fvsu_filt$image_path, 64))
+
+sample200_fvsu <- tibble(image_path = c(imageFVSUSample30$image_path, sample170_fvsu)) %>% 
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_fvsu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`)
+
+sample_200_fvsu_summary <- sample200_fvsu %>% 
+  pivot_longer(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+               names_to = 'marker', 
+               values_to = 'allele') %>% 
+  group_by(marker, allele) %>% 
+  count()
+
+write.table(sample170_fvsu, 'output/images_to_score_fvsu_sample190.txt', quote = FALSE, row.names = FALSE, col.names = FALSE)
+
+## aamu
+idx_aamu <- read_csv('data/aamu2025/aamu_field_index.csv')
+pctd_aamu <- read_csv('data/aamu2025/pctd_all.csv') %>%
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_aamu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`, ExG_P20_disease_pct) %>% 
+  mutate(across(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+                ~case_when(.x %in% c("./.", ".", "0/1", "./.", "0/1", "./.", "./.") ~ NA, .default = .x))) %>%
+  filter(if_all(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), ~!is.na(.)))
 
 pctd_quantiles_aamu <- quantile(pctd_aamu$ExG_P20_disease_pct, probs = c(0, 0.33, 0.66, 1))
 quant1_aamu <- filter(pctd_aamu, ExG_P20_disease_pct < pctd_quantiles_aamu[2])
 quant2_aamu <- filter(pctd_aamu, (ExG_P20_disease_pct >= pctd_quantiles_aamu[2]) & (ExG_P20_disease_pct < pctd_quantiles_aamu[3]))
 quant3_aamu <- filter(pctd_aamu, ExG_P20_disease_pct >= pctd_quantiles_aamu[3])
 
-imageAAMUSample30 <- c(sample(quant1_aamu$image_path, 10), sample(quant2_aamu$image_path, 10), sample(quant3_aamu$image_path, 10))
+# imageAAMUSample30 <- c(sample(quant1_aamu$image_path, 10), sample(quant2_aamu$image_path, 10), sample(quant3_aamu$image_path, 10))
 # write.table(imageAAMUSample30, 'output/aamu2025_images_to_score_30.csv', quote = FALSE, row.names = FALSE, col.names = FALSE)
+imageAAMUSample30 <- read_csv('output/aamu2025_images_to_score_30.csv', col_names = c('image_path')) %>% 
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_aamu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`)  %>% 
+  mutate(across(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+                ~case_when(.x %in% c("./.", ".", "0/1", "./.", "0/1", "./.", "./.") ~ NA, .default = .x))) %>%
+  filter(if_all(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), ~!is.na(.)))
+
+quant1_aamu_filt <- filter(quant1_aamu, !(image_path %in% imageAAMUSample30$image_path))
+quant2_aamu_filt <- filter(quant2_aamu, !(image_path %in% imageAAMUSample30$image_path))
+quant3_aamu_filt <- filter(quant3_aamu, !(image_path %in% imageAAMUSample30$image_path))
+
+sample170_aamu <- c(sample(quant1_aamu_filt$image_path, 62), sample(quant2_aamu_filt$image_path, 62), sample(quant3_aamu_filt$image_path, 62))
+
+sample200_aamu <- tibble(image_path = c(imageAAMUSample30$image_path, sample170_aamu)) %>% 
+  mutate(plotNumber = str_split_i(image_path, '_', 1) %>% 
+           as.numeric()) %>% 
+  left_join(idx_aamu, join_by(plotNumber)) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  select(image_path, plotNumber, genotype, `2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`)
+
+sample_200_aamu_summary <- sample200_aamu %>% 
+  pivot_longer(c(`2:1961996:T:A`, `9:62272161:C:A`, `5:60007887:G:C`, `10:60309710:C:G`), 
+               names_to = 'marker', 
+               values_to = 'allele') %>% 
+  group_by(marker, allele) %>% 
+  count()
+
+write.table(sample170_aamu, 'output/images_to_score_aamu_sample190.txt', quote = FALSE, row.names = FALSE, col.names = FALSE)
