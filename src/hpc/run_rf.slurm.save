@@ -1,0 +1,25 @@
+#!/usr/bin/bash
+#SBATCH --array=2-44
+#SBATCH --job-name=RF
+#SBATCH --ntasks=1
+#SBATCH --mem-per-cpu=8G
+#SBATCH --time=35:30:00
+#SBATCH --partition=schnablelab,jclarke,batch,guest
+#SBATCH --output=/work/schnablelab/jdavis132/fieldLeafImaging/log/%x_%a.out
+#SBATCH --error=/work/schnablelab/jdavis132/fieldLeafImaging/log/%x_%a.err
+#SBATCH --mail-type=ALL
+#SBATCH --mail-user=jdavis132@huskers.unl.edu
+
+cd $WORK/fieldLeafImaging
+ml anaconda
+conda activate random_forest
+
+model=$(sed -n "${SLURM_ARRAY_TASK_ID}p" data/model_list.txt)
+predictor_prefix=$(sed -n "${SLURM_ARRAY_TASK_ID}p" data/predictor_prefix_list.txt)
+input_data=$(sed -n "${SLURM_ARRAY_TASK_ID}p" data/label_file_list.txt)
+
+echo ${model}
+echo ${predictor_prefix}
+echo ${label}
+
+python src/main5CV.py data/.csv data/rf_predictors/${model}_rf_predictors.csv --join_column image_path --predictor_prefix ${predictor_prefix} --output_prefix out/${model}_${predictor_prefix}_pctd_${label}_
