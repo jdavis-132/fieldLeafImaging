@@ -433,7 +433,7 @@ score_bars <- df_bar %>%
   theme(axis.text.x = element_text(angle = 90))
 score_bars
 
-ggsave('figures/main/figure4/human_score_bars.svg', plot = score_bars, height = 2.5, width = 1.5, dpi = 1e3, bg = NULL)
+ggsave('figures/main/figure4/human_score_bars.svg', plot = score_bars, height = 2.75, width = 1.75, dpi = 1e3, bg = NULL)
 
 embeddings_highlight <- c('embedding_std_128', 'embedding_mean_637', 'embedding_std_793', 'embedding_mean_984')
 color_pals <- list(paletteer_d('ggsci::light_blue_material', 10)[c(4, 10)], paletteer_d('ggsci::light_green_material', 10)[c(5, 10)], 
