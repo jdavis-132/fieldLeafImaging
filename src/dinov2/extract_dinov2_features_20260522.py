@@ -9,8 +9,8 @@ the spatial variability of each feature across the image.
 """
 
 import torch
-from torchvision import transforms
-from PIL import Image
+from torchvision.transforms import v2
+import cv2
 import pandas as pd
 import numpy as np
 import os
@@ -68,11 +68,11 @@ class DINOv2PatchStatsExtractor:
             else:
                 raise
         # uses the image transforms from https://github.com/facebookresearch/sam3/blob/main/sam3/model/sam3_image_processor.py self.transform; 
-        # using transforms class instead of v2 class from SAM3
-        self.transform = transforms.Compose([
-            transforms.Resize(size=(1008, 1008), interpolation=transforms.InterpolationMode.BICUBIC),
-            transforms.ToTensor(),
-            transforms.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
+        self.transform = v2.Compose([
+                v2.ToDtype(torch.uint8, scale=True),
+                v2.Resize(size=(1008, 1008)),
+                v2.ToDtype(torch.float32, scale=True),
+                v2.Normalize(mean=[0.5, 0.5, 0.5], std=[0.5, 0.5, 0.5]),
         ])
 
     def _get_feature_dimension(self):
@@ -83,8 +83,12 @@ class DINOv2PatchStatsExtractor:
 
     def load_image(self, image_path):
         try:
-            image = Image.open(image_path).convert('RGB')
-            return self.transform(image)
+            bgr = cv2.imread(image_path)
+            if bgr is None:
+                raise ValueError(f"cv2.imread returned None for {image_path}")
+            rgb = cv2.cvtColor(bgr, cv2.COLOR_BGR2RGB)
+            tensor = torch.from_numpy(rgb).permute(2, 0, 1)  # (H,W,C) -> (C,H,W)
+            return self.transform(tensor)
         except Exception as e:
             print(f"Error loading {image_path}: {e}")
             return None
@@ -193,7 +197,7 @@ def main():
     OUTPUT_CSV = args.output_csv
     IMAGE_PATTERN = args.image_dir
     DEVICE = 'cuda'
-    BATCH_SIZE = 32
+    BATCH_SIZE = 16
 
     image_paths = find_images(IMAGE_PATTERN)
     if not image_paths:
