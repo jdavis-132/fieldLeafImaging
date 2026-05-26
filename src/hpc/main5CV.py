@@ -32,7 +32,8 @@ predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
 
 kfold = GroupKFold(n_splits = k)
-features = data[[col for col in data.columns if args.predictor_prefix in col]]
+predictor_prefixes = args.predictor_prefix.split('|')
+features = data[[col for col in data.columns if any(p in col for p in predictor_prefixes)]]
 scores = data[args.label]
 genotype = data[args.group]
 i = 1
@@ -43,10 +44,10 @@ for train_idx, test_idx in splits:
     train_ds = data.iloc[train_idx]
     test_ds = data.iloc[test_idx]
         
-    train_features = train_ds[[col for col in data.columns if args.predictor_prefix in col]]
+    train_features = train_ds[[col for col in data.columns if any(p in col for p in predictor_prefixes)]]
     train_response = train_ds[args.label]
-        
-    test_features = test_ds[[col for col in data.columns if args.predictor_prefix in col]]
+
+    test_features = test_ds[[col for col in data.columns if any(p in col for p in predictor_prefixes)]]
     test_images = test_ds[args.image_id_col]    
     test_features = preprocessing.StandardScaler().fit_transform(test_features)
     test_response = test_ds[args.label]
