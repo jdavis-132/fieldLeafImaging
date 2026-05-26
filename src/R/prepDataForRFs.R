@@ -111,7 +111,7 @@ write_csv(tibble(image_name = crops_keep), 'data/ne2025/image_crops_keep.csv')
 
 pctd_unl_rs <- filter(pctd_crops_unl_filtered, image_name %in% crops_keep)
 
-human_scores <- read_csv('data/manual/all_image_scores.csv')  %>%
+human_scores <- read_csv('data/manual/all_image_scores.csv') %>%
   select(image_id, username, score, genotype) %>%
   pivot_wider(id_cols = c(image_id, genotype),
               names_from = username, 
@@ -126,24 +126,31 @@ ae4_embeddings <- read_csv('models/autoencoder_20260108_183222_standard_lr0.001_
 ae5_embeddings <- read_csv('models/autoencoder_20260109_034107_standard_lr0.001_bs32_l1_attention/embeddings.csv')
 ae6_embeddings <- read_csv('models/autoencoder_20260109_205057_standard_lr0.001_bs32_l1/embeddings.csv')
 ae7_embeddings <- read_csv('models/autoencoder_20260110_045517_standard_lr0.001_bs32_disease_weighted_l1/embeddings.csv')
-dinov2_embeddings <- read_csv('output/dinov2_features.csv')
+dinov2_embeddings <- read_csv('output/dinov2_20260522.csv')
 sam3_embeddings <- read_csv('output/sam3_embeddings.csv')
 sam3_mean <- sam3_embeddings %>% 
   select(c(image_path, starts_with('embedding_mean')))
 sam3_std <- sam3_embeddings %>% 
   select(c(image_path, starts_with('embedding_std')))
+dinov2_mean <-select(dinov2_embeddings, c(image_path, starts_with('mean')))
+dinov2_std <- select(dinov2_embeddings, c(image_path, starts_with('std')))
+         
 
-embedding_sets <- list(ae1_embeddings, ae2_embeddings, ae3_embeddings, ae4_embeddings, ae5_embeddings, ae6_embeddings, ae7_embeddings, 
-                       dinov2_embeddings, sam3_embeddings, sam3_mean, sam3_std)
-LV_prefix <- c(rep('latent_dim', 7), 'feature', rep('embedding', 3))
-models <- c('ae1', 'ae2', 'ae3', 'ae4', 'ae5', 'ae6', 'ae7', 'dinov2', 'sam3', 'sam3_mean', 'sam3_std')
+embedding_sets <- list(ae1_embeddings, ae2_embeddings, ae3_embeddings, ae4_embeddings, ae5_embeddings, ae6_embeddings, ae7_embeddings,
+dinov2_embeddings, sam3_embeddings, sam3_mean, sam3_std, dinov2_mean, dinov2_std)
+# embedding_sets <- list(dinov2_embeddings, dinov2_embeddings, dinov2_embeddings, dinov2_embeddings,
+#                        dinov2_embeddings, dinov2_embeddings, dinov2_embeddings, dinov2_embeddings)
+LV_prefix <- c(rep('latent_dim', 7), 'mean|std', rep('embedding', 3), 'mean', 'std')
+models <- c('ae1', 'ae2', 'ae3', 'ae4', 'ae5', 'ae6', 'ae7', 'dinov2', 'sam3', 'sam3_mean', 'sam3_std', 'dinov2_mean', 'dinov2_std')
 winsor_strength <- 0.01
 
+# for(i in 8)
 for(i in 1:length(embedding_sets))
 {
   lv_cols <- colnames(embedding_sets[[i]])[str_detect(colnames(embedding_sets[[i]]), LV_prefix[i])]
   # clean up image path for matching
   df_embeddings <- embedding_sets[[i]] %>%
+    filter(!str_detect(image_path, 'cropped_transparent_bg')) %>%
     mutate(image_id = basename(image_path) %>% 
              str_remove('-05_00_[0-9]\\.(png|npz)') %>%
              str_remove('-05_00\\.jpg') %>% 
@@ -175,10 +182,10 @@ for(i in 1:length(embedding_sets))
 
   df <- left_join(df_winsor, df_winsorpc, join_by(image_name, image_id))
 
-  df_scores <- human_scores %>%
-    left_join(df, join_by(image_id), relationship = 'one-to-many')
-
-  write_csv(df_scores, str_c('output/', models[i], '_human_scores_rf.csv'))
+  # df_scores <- human_scores %>%
+  #   left_join(df, join_by(image_id), relationship = 'one-to-many')
+  # 
+  # write_csv(df_scores, str_c('output/', models[i], '_human_scores_rf.csv'))
 
   df_pctd <- pctd_crops_unl_filtered %>%
     left_join(df, join_by(image_name, image_id), relationship = 'one-to-one')

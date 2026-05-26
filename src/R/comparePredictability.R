@@ -11,11 +11,11 @@ source('src/R/Functions.R')
 #                     'embedding_std', 'embedding', 'feature', rep('latent_dim', 7), rep('PC', 11))
 # label_list <- rep(c('all', 'senesced_removed'), each = 22)
 
-model_specs <- read_csv('data/rf_model_specs_20260507.csv')
+model_specs <- read_csv('data/rf_model_specs_20260524.csv')
 model_specs <- mutate(model_specs, predictiveAbility = -1)
-for(i in 1:nrow(model_specs))
+for(i in c(1:13, 40:52))
 {
-  df <- read_csv(str_c('output/rf_20260507/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
+  df <- read_csv(str_c('output/rf_20260524/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
   model_specs$predictiveAbility[i] = getRFPredictability(df, 
                       model_descriptor = str_c(model_specs$model[i], model_specs$label[i], model_specs$predictor_prefix[i], sep = ':'))
   
