@@ -1,0 +1,5 @@
+Marker,Gene,Embedding,Reference
+1:65781144:G:GT,Sobic.001G329100,839 (SD),Chen et al. (2024)
+5:60007887:G:C,Sobic.005G126200,"792 (Mean), 984 (Mean), 793 (SD), 119 (Mean)","Zhu et al. (2013, 2015)"
+9:60035864:A:T,Sobic.009G217900,"383 (SD), 983 (SD), 37 (Mean)",Biruma et al. (2012)
+9:60186716:T:A,"Sobic.009G217900, Sobic.009G221266",734 (Mean),Biruma et al. (2012)
