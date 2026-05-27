@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" width="6.5in" height="3.25in" viewBox="0 0 624 312">
+  <defs>
+    <linearGradient id="greenGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#C8E6C9;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#A5D6A7;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#BBDEFB;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#90CAF9;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="orangeGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#FFE0B2;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#FFCC80;stop-opacity:1"/>
+    </linearGradient>
+    <linearGradient id="purpleGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#E1BEE7;stop-opacity:1"/>
+      <stop offset="100%" style="stop-color:#CE93D8;stop-opacity:1"/>
+    </linearGradient>
+    <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
+      <polygon points="0 0, 10 3.5, 0 7" fill="#666"/>
+    </marker>
+  </defs>
+
+  <!-- Background -->
+  <rect width="624" height="312" fill="#fafafa"/>
+
+  <!-- Box 1: Segment image (green = input) -->
+  <rect x="10" y="119" width="120" height="60" rx="7" ry="7" fill="url(#greenGrad)" stroke="#2E7D32" stroke-width="2"/>
+  <text font-family="Helvetica, Arial, sans-serif" font-size="18.67" text-anchor="middle" fill="#1B5E20">
+    <tspan x="70" y="138">Segment</tspan>
+    <tspan x="70" dy="22">image</tspan>
+  </text>
+
+  <!-- Arrow: Box 1 → Box 2 -->
+  <line x1="130" y1="149" x2="150" y2="149" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Box 2: Generate sliding crops (blue = encoder-like processing) -->
+  <rect x="154" y="89" width="208" height="120" rx="7" ry="7" fill="url(#blueGrad)" stroke="#1565C0" stroke-width="2"/>
+  <text font-family="Helvetica, Arial, sans-serif" font-size="18.67" text-anchor="middle" fill="#0D47A1">
+    <tspan x="258" y="113">Generate sliding</tspan>
+    <tspan x="258" dy="24">crops of image to</tspan>
+    <tspan x="258" dy="24">standard dimensions</tspan>
+    <tspan x="258" dy="24">centered on leaf mask</tspan>
+  </text>
+
+  <!-- Line: Box 2 right edge → split junction -->
+  <line x1="362" y1="149" x2="382" y2="149" stroke="#666" stroke-width="2"/>
+
+  <!-- Junction dot -->
+  <circle cx="382" cy="149" r="4" fill="#666"/>
+
+  <!-- Vertical split line -->
+  <line x1="382" y1="70" x2="382" y2="228" stroke="#666" stroke-width="2"/>
+
+  <!-- Arrow: junction → Box a -->
+  <line x1="382" y1="70" x2="394" y2="70" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Arrow: junction → Box b -->
+  <line x1="382" y1="228" x2="394" y2="228" stroke="#666" stroke-width="2" marker-end="url(#arrowhead)"/>
+
+  <!-- Box a: Custom autoencoders (orange = latent/AE) -->
+  <rect x="396" y="40" width="218" height="60" rx="7" ry="7" fill="url(#orangeGrad)" stroke="#EF6C00" stroke-width="2"/>
+  <text font-family="Helvetica, Arial, sans-serif" font-size="18.67" text-anchor="middle" fill="#E65100">
+    <tspan x="505" y="70">Custom autoencoders</tspan>
+  </text>
+
+  <!-- Box b: Pre-trained foundation models (purple = decoder) -->
+  <rect x="396" y="183" width="218" height="90" rx="7" ry="7" fill="url(#purpleGrad)" stroke="#7B1FA2" stroke-width="2"/>
+  <text font-family="Helvetica, Arial, sans-serif" font-size="18.67" text-anchor="middle" fill="#4A148C">
+    <tspan x="505" y="204">Pre-trained foundation</tspan>
+    <tspan x="505" dy="24">models (DINOv2,</tspan>
+    <tspan x="505" dy="24">SAM3 vision encoder)</tspan>
+  </text>
+
+</svg>
