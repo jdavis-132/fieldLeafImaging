@@ -69,46 +69,54 @@ for(p in unlist(LV_prefix))
 #              "embedding_mean_698", "embedding_mean_344", "embedding_mean_119", "embedding_std_244", "embedding_mean_615", "embedding_std_566",
 #              "embedding_mean_586", "embedding_mean_122", "embedding_mean_210", "embedding_mean_619", "embedding_std_161", "embedding_mean_308",
              # "embedding_mean_165", "embedding_mean_986", "embedding_mean_197", "embedding_std_617", "embedding_std_783", "embedding_mean_181")
-# lv_cols <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
-#             "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
-#             "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
-#             "embedding_mean_698", "embedding_mean_165", "embedding_mean_37", "embedding_mean_582", "embedding_mean_214", "embedding_mean_792",
-#             "embedding_std_606", "embedding_mean_930", "embedding_mean_734", "embedding_mean_108", "embedding_mean_560", "embedding_std_166",
-#             "embedding_std_983", "embedding_std_981", "embedding_mean_197", "embedding_std_817", "embedding_std_132", "embedding_std_82",
-#             "embedding_mean_950", "embedding_mean_119", "embedding_std_128", "embedding_mean_139", "embedding_std_76", "embedding_std_839",
-#             "embedding_std_326", "embedding_mean_842", "embedding_std_567", "embedding_mean_237", "embedding_std_793")
-
+lv_cols_a <- c("embedding_std_930", "embedding_std_552", "embedding_std_918", "embedding_mean_637", "embedding_std_976", "embedding_mean_886",
+            "embedding_mean_210", "embedding_std_383", "embedding_std_687", "embedding_mean_984", "embedding_mean_68", "embedding_mean_836",
+            "embedding_mean_586", "embedding_std_968", "embedding_mean_546", "embedding_std_821", "embedding_mean_656", "embedding_mean_968",
+            "embedding_mean_698", "embedding_mean_165", "embedding_mean_37", "embedding_mean_582", "embedding_mean_214", "embedding_mean_792",
+            "embedding_std_606", "embedding_mean_930", "embedding_mean_734", "embedding_mean_108", "embedding_mean_560", "embedding_std_166",
+            "embedding_std_983", "embedding_std_981", "embedding_mean_197", "embedding_std_817", "embedding_std_132", "embedding_std_82",
+            "embedding_mean_950", "embedding_mean_119", "embedding_std_128", "embedding_mean_139", "embedding_std_76", "embedding_std_839",
+            "embedding_std_326", "embedding_mean_842", "embedding_std_567", "embedding_mean_237", "embedding_std_793")
+lv_cols_b <- c("embedding_std_976", "embedding_std_552", "embedding_std_930", "embedding_mean_637", "embedding_std_918", "embedding_std_383",
+             "embedding_mean_586", "embedding_mean_968", "embedding_mean_886", "embedding_mean_656", "embedding_mean_698", "embedding_mean_210",
+             "embedding_mean_836", "embedding_std_968", "embedding_std_132", "embedding_mean_37",  "embedding_mean_68", "embedding_std_687",
+             "embedding_std_793",  "embedding_mean_165", "embedding_mean_582", "embedding_std_821",  "embedding_mean_108", "embedding_mean_119",
+             "embedding_mean_989", "embedding_std_839", "embedding_mean_514", "embedding_mean_546", "embedding_std_606", "embedding_mean_984",
+             "embedding_mean_792", "embedding_std_981", "embedding_std_270", "embedding_std_594", "embedding_mean_437", "embedding_mean_901",
+             "embedding_mean_129", "embedding_std_567", "embedding_mean_930", "embedding_std_983",  "embedding_mean_139", "embedding_std_166",
+             "embedding_mean_214", "embedding_std_82",  "embedding_mean_109", "embedding_mean_734", "embedding_std_517")
+lv_cols <- setdiff(lv_cols_b, lv_cols_a)
 df_winsor <- df_combined
 for(lv in lv_cols)
 {
   df_winsor <- winsorize(df_winsor, lv, winsor_strength, 1 - winsor_strength)
 }
 
-if(phenotype_source=='image')
-{
-  # calculate PCs
-  pcs <- getPCScores(df_winsor, (matches(paste(LV_prefix, collapse = "|")) & where(~is.numeric(.x) &&
-                                        isTRUE(var(.x, na.rm = TRUE) != 0))))
-
-  # winsorize PCs
-  df_winsorpc <- pcs %>%
-    rename_with(~str_c(out_prefix, '_', .x), .cols=contains('PC'))
-  pc_cols <- colnames(df_winsorpc)[str_detect(colnames(df_winsorpc), 'PC')]
-  for(pc in pc_cols)
-  {
-    df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
-  }
-  # add to df
-  df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
-
-  df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
-  write_csv(df, str_c('output/', out_prefix, '_rf_predictors.csv'))
-  response_vars <- c(lv_cols, pc_cols)
-}else
-{
+# if(phenotype_source=='image')
+# {
+#   # calculate PCs
+#   pcs <- getPCScores(df_winsor, (matches(paste(LV_prefix, collapse = "|")) & where(~is.numeric(.x) &&
+#                                         isTRUE(var(.x, na.rm = TRUE) != 0))))
+# 
+#   # winsorize PCs
+#   df_winsorpc <- pcs %>%
+#     rename_with(~str_c(out_prefix, '_', .x), .cols=contains('PC'))
+#   pc_cols <- colnames(df_winsorpc)[str_detect(colnames(df_winsorpc), 'PC')]
+#   for(pc in pc_cols)
+#   {
+#     df_winsorpc <- winsorize(df_winsorpc, pc, winsor_strength, 1 - winsor_strength)
+#   }
+#   # add to df
+#   df_winsorpc <- select(df_winsorpc, c(image_path, all_of(pc_cols)))
+# 
+#   df <- left_join(df_winsor, df_winsorpc, join_by(image_path))
+#   write_csv(df, str_c('output/', out_prefix, '_rf_predictors.csv'))
+#   response_vars <- c(lv_cols, pc_cols)
+# }else
+# {
   df <- df_winsor
   response_vars <- lv_cols
-}
+# }
 
 # broad-sense variance partitioning 
 # vp <- tibble()

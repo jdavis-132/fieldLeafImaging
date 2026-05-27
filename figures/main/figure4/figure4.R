@@ -256,6 +256,7 @@ image_scores <- bind_rows(image_scores_lg30, image_scores_rr30, image_scores_lg_
   mutate(plotNumber = str_split_i(image, '_', 1) %>% 
            as.numeric()) %>% 
   rename(location = project)
+write_csv(image_scores, 'data/manual/image_scores_al_ga.csv')
 
 image_scores_aamu <- filter(image_scores, location=='AAMU') %>% 
   left_join(idx_aamu, join_by(plotNumber), relationship = 'many-to-one')
