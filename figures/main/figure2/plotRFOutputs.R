@@ -43,7 +43,7 @@ predictability_bars <- ggplot(model_specs, aes(model, predictiveAbility, fill = 
   scale_x_discrete(expand = c(0, 0)) +
   scale_y_continuous(expand = c(0, 0), name = expression("Spearman "~ R^2)) +
   scale_fill_manual(values = c(paletteer_d("ggsci::default_gsea", 12)[7:12], 
-                               paletteer_d("dichromat::DarkRedtoBlue_12", 12)[c(12, 5, 3, 1)], 
+                               paletteer_d("dichromat::DarkRedtoBlue_12", 12)[c(12, 4, 3, 1)], 
                                paletteer_d("ggsci::default_gsea", 12)[c(5, 3, 1)])) +
   labs(x = NULL) +
   theme_use + 
