@@ -11,7 +11,7 @@ args <- commandArgs(trailingOnly = FALSE)
 phenotype_source <- str_remove(args[length(args) - 7], fixed('-'))
 embeddings <- str_remove(args[length(args) - 6], fixed('-'))
 field_index <- str_remove(args[length(args) - 5], fixed('-'))
-LV_prefix <- str_remove(args[length(args) - 4], fixed('-')) %>% str_split(',') # comma sep list of prefixes
+LV_prefix <- str_remove(args[length(args) - 4], fixed('-')) # pipe sep list of prefixes, used as regex
 out_prefix <- str_remove(args[length(args) - 3], fixed('-'))
 winsor_strength <- as.numeric(str_remove(args[length(args) - 2], fixed('-')))
 genotype_alignment <- str_remove(args[length(args) - 1], fixed('-'))
@@ -27,6 +27,7 @@ if(phenotype_source == 'image')
 {
   images_keep_list <- read_tsv(images_keep, col_names = c('image_id'), skip = 1)
   df_embeddings <- df_embeddings %>% 
+    filter(!str_detect(image_path, 'cropped_transparent_bg')) %>% 
     mutate(plotNumber = basename(image_path) %>% 
                     str_split_i('_', 1) %>% 
                     as.numeric(), 
@@ -59,9 +60,9 @@ df_combined <- left_join(df_embeddings, df_field_index, join_by(plotNumber))
 
 # winsorize to deal with extreme values
 lv_cols <- c()
-for(p in LV_prefix)
+for(p in unlist(LV_prefix))
 {
-  lv_cols <- c(lv_cols, colnames(df_combined)[str_detect(colnames(df_combined), LV_prefix[p])])
+  lv_cols <- c(lv_cols, colnames(df_combined)[str_detect(colnames(df_combined), p)])
 }
 # lv_cols <- c("embedding_std_976", "embedding_mean_560", "embedding_mean_174", "embedding_mean_939", "embedding_std_251", "embedding_std_466",
 #              "embedding_mean_875", "embedding_std_793", "embedding_mean_191", "embedding_mean_283", "embedding_mean_108", "embedding_mean_768",
