@@ -147,6 +147,8 @@ human_vi_scores <- pctd_ne %>%
   right_join(interrater_image_scores, join_by(image_id, plotNumber)) %>%
   mutate(mean_score = (Libia + Ruben)/2)
 
+cor(human_vi_scores$mean_score, human_vi_scores$pctd, method = 'spearman', use = 'complete.obs')^2
+
 human_vi_corplot <- ggplot(human_vi_scores, aes(mean_score, pctd)) + 
   geom_point(color = paletteer_d("ggsci::default_gsea", 4)[4], alpha = 0.25) +
   geom_smooth(method = 'lm', linetype = 'dashed', se = FALSE, color = 'black') + 
@@ -186,10 +188,10 @@ score_plot_summary <- human_vi_scores %>%
   summarise(mean_score_range = range(mean_score, na.rm = TRUE), 
             pctd_range = range(pctd, na.rm = TRUE))
 
-model_specs <- read_csv('data/rf_model_specs_20260507.csv')
-model_specs <- mutate(model_specs, predictiveAbility = -1)
+model_specs07 <- read_csv('data/rf_model_specs_20260507.csv')
+model_specs07 <- mutate(model_specs07, predictiveAbility = -1)
 
-pctd_model_df <- read_csv(str_c('output/rf_20260507/', model_specs$model[22], '_', model_specs$label[22], '_', model_specs$predictor_prefix[22], '_predictions_rf.csv'))
+pctd_model_df <- read_csv(str_c('output/rf_20260507/', model_specs07$model[22], '_', model_specs07$label[22], '_', model_specs07$predictor_prefix[22], '_predictions_rf.csv'))
 spearman_r2 <- cor(pctd_model_df[['label']], pctd_model_df[['predicted']], use = 'complete.obs', method = 'spearman')^2
 pctd_pred <- ggplot(pctd_model_df, aes(label, predicted)) + 
   geom_point(color = paletteer_d("ggsci::default_gsea", 4)[4], alpha = 0.5) + 
@@ -211,26 +213,30 @@ ggsave('figures/supplemental/exg_RF_all.png', plot = pctd_pred, dpi = 1e3, bg = 
 high_error <- filter(pctd_model_df, 
                      label > 70 & predicted < 25)
 
-model_specs <- model_specs[34:44, ]
+model_specs <- read_csv('data/rf_model_specs_20260524.csv')
+model_specs <- mutate(model_specs, predictiveAbility = -1)
+model_specs <- model_specs[40:52, ]
 for(i in 1:nrow(model_specs))
 {
-  df <- read_csv(str_c('output/rf_20260507/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
+  df <- read_csv(str_c('output/rf_20260524/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
   model_specs$predictiveAbility[i] = getRFPredictability(df, 
                                                          model_descriptor = str_c(model_specs$model[i], model_specs$label[i], model_specs$predictor_prefix[i], sep = ':'))
   
 }
 
-model_order <- c('ae1', 'ae2', 'ae3', 'ae4', 'ae5', 'ae6', 'ae7', 'dinov2', 'sam3_mean', 'sam3_std', 'sam3')
+model_order <- c('ae1', 'ae2', 'ae3', 'ae4', 'ae5', 'ae6', 'ae7', 'dinov2_mean', 'dinov2_std', 'dinov2', 'sam3_mean', 'sam3_std', 'sam3')
 model_specs <- mutate(model_specs, 
                       model = factor(model, 
                                      levels = model_order, 
                                      labels = c('AE1', 'AE2', 'AE3', 'AE4', 'AE5', 'AE6', 'AE7', 
-                                                'DINOv2', 'SAM3 Mean', 'SAM3 SD', 'SAM3 All')))
+                                                'DINOv2 Mean', 'DINOv2 SD', 'DINOv2 All', 'SAM3 Mean', 'SAM3 SD', 'SAM3 All')))
 
 predictability_bars_pc <- ggplot(model_specs, aes(model, predictiveAbility, fill = model)) + 
   geom_col() + 
   scale_y_continuous(expand = c(0, 0), name = expression("Spearman "~ R^2)) +
-  scale_fill_manual(values = c(paletteer_d("ggsci::default_gsea", 12)[7:12], paletteer_d("dichromat::DarkRedtoBlue_12", 12)[12], paletteer_d("ggsci::default_gsea", 12)[c(5, 4, 3, 1)])) +
+  scale_fill_manual(values = c(paletteer_d("ggsci::default_gsea", 12)[7:12], 
+                               paletteer_d("dichromat::DarkRedtoBlue_12", 12)[c(12, 4, 3, 1)], 
+                               paletteer_d("ggsci::default_gsea", 12)[c(5, 3, 1)])) +
   labs(x = NULL) +
   theme_use + 
   theme(axis.text.x = element_text(angle = 90), 
@@ -238,7 +244,7 @@ predictability_bars_pc <- ggplot(model_specs, aes(model, predictiveAbility, fill
 predictability_bars_pc
 ggsave(filename = 'figures/supplemental/predictability_bars_100PCs.png', plot = predictability_bars_pc, width = 3.3, height = 1.85, units = 'in', dpi = 1e3, bg = 'transparent')
 
-fi_human_features <- read_csv('output/rf_20260507/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
+fi_human_features <- read_csv('output/rf_20260524/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
@@ -256,11 +262,12 @@ fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
 
-high_fi <- fi_human_features %>% 
-  arrange(desc(avg_fi))
-high_fi <- high_fi[1:47, ]
+high_fi <- fi_human_features[1:47, ]
 
 high_fi_features <- str_c('embedding', high_fi$stat, high_fi$embedding_num, sep = '_')
+
+low_fi_features <- fi_human_features[2002:2048, ]
+low_fi_features <- str_c('embedding', low_fi_features$stat, low_fi_features$embedding_num, sep = '_')
 
 embeddings <- read_csv('output/sam3_pctd_crops_rf.csv') %>% 
   mutate(location = 'UNL')
@@ -378,18 +385,54 @@ embeddings_vp_ne <- embeddings_vp_ne %>%
   arrange(desc(h))
 
 high_fi_vp <- filter(embeddings_vp_ne, responseVar %in% high_fi_features)
+min(high_fi_vp$h, na.rm = TRUE)
+max(high_fi_vp$h, na.rm = TRUE)
 low_fi_vp <- filter(embeddings_vp_ne, !(responseVar %in% high_fi_features)) %>% 
   arrange(desc(h))
 
-all_farmcpu_hits <- read_csv('output/sam3_20260324_allfarmcpuhits.csv')
+low_fi_highH <- embeddings_vp_ne$responseVar[1:10]
+
+rmip_pctd <- read_csv('output/farmcpu_20260515/pctd_farmcpu_hits.csv') %>% 
+  mutate(embedding = 'pctd') %>% 
+  group_by(SNP, CHROM, POS, embedding) %>% 
+  summarise(RMIP = n()/100, 
+            min_p = min(FarmCPU_P, na.rm = TRUE), 
+            mean_effect = mean(FarmCPU_Effect, na.rm = TRUE)) %>% 
+  arrange(desc(RMIP))
+pctd_manhattan <- plotManhattan(rmip_pctd, RMIP, threshold = 0.2, theme = theme_use, species = 'sorghum', chrGap = 8e6, 
+                                colors = paletteer_d("RColorBrewer::Paired", 10), main = 'Percent Unhealthy Tissue')
+ggsave('figures/supplemental/pctd_manhattan.png', plot = pctd_manhattan, width = 6.5, height = 3.25, dpi = 1e3, bg = NULL)
+
+rmip_scores <- read_csv('output/farmcpu_20260515/human_scores_farmcpu_hits.csv') %>% 
+  mutate(embedding = 'human_score') %>%
+  group_by(SNP, CHROM, POS, embedding) %>% 
+  summarise(RMIP = n()/100, 
+            min_p = min(FarmCPU_P, na.rm = TRUE), 
+            mean_effect = mean(FarmCPU_Effect, na.rm = TRUE)) %>% 
+  arrange(desc(RMIP))
+scores_manhattan <- plotManhattan(rmip_scores, RMIP, threshold = 0.2, theme = theme_use, species = 'sorghum', chrGap = 8e6,
+                                  colors = paletteer_d('RColorBrewer::Paired', 10), main = 'Human Disease Severity Scores')
+ggsave('figures/supplemental/scores_manhattan.png', plot = scores_manhattan, width = 6.5, height = 3.25, dpi = 1e3, bg = NULL)
+
+all_farmcpu_hits <- read_csv('output/farmcpu_20260515/all_farmcpu_hits.csv') %>% 
+  filter(embedding %in% high_fi_features)
 
 rmip <- all_farmcpu_hits %>% 
-  group_by(SNP, CHROM, POS, feature, stat) %>% 
+  group_by(SNP, CHROM, POS, embedding) %>% 
   summarise(RMIP = n()/100, 
-            min_p = min(pval, na.rm = TRUE), 
-            mean_effect = mean(effect, na.rm = TRUE)) %>% 
-  mutate(embedding = str_c('embedding', stat, feature, sep = '_')) %>% 
+            min_p = min(FarmCPU_P, na.rm = TRUE), 
+            mean_effect = mean(FarmCPU_Effect, na.rm = TRUE)) %>% 
   arrange(desc(RMIP))
+
+lrr2_chr5loc <- mean(59834505:59836269) + 348316776
+cdl1_chr9loc <- mean(60010749:60014092) + 654779914
+cs1a_chr9loc <- mean(60240330:60245571) + 654779914
+bak1_chr1loc <- mean(65789782:65792511)
+
+embeddings_manhattan <- plotManhattan(rmip, RMIP, threshold = 0.2, theme = theme_use, species = 'sorghum', chrGap = 8e6,
+                                      colors = paletteer_d('RColorBrewer::Paired', 10), main = 'All High Feature Importance SAM3 Embeddings')  + 
+  annotate('point', x = c(bak1_chr1loc, lrr2_chr5loc, cdl1_chr9loc, cs1a_chr9loc), y = rep(0, 4), size = 4, color = 'blue', shape = 17)
+ggsave('figures/supplemental/embeddings_manhattan.png', plot = embeddings_manhattan, width = 6.5, height = 3.25, dpi = 1e3, bg = NULL)
 
 rmip_0.2 <- filter(rmip, RMIP > 0.2) %>% 
   mutate(label = str_c(feature, ' (', str_to_title(stat), ')') %>% 
