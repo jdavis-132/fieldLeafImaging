@@ -84,31 +84,34 @@ vp.plot <- ggplot(pctd_vp, aes(label, pctVar, fill = grp)) +
   labs(title = 'ExG')
 vp.plot
 
-# image_scores_lg200 <- read_csv('data/manual/20260318_ScoresSorghum_LFGT.csv') %>% 
-#   filter(project=='UNL')
-# image_scores_lg800 <- read_csv('data/manual/scores800_LFGT.csv')
-# image_scores_lg <- bind_rows(image_scores_lg200, image_scores_lg800)
-# 
-# image_scores_rr200 <- read_csv('data/manual/20260319_ScoresSorghum_RRR.csv') %>% 
-#   filter(project=='UNL')
-# image_scores_rr800 <- read_csv('data/manual/scores800_RRR.csv')
-# image_scores_rr <- bind_rows(image_scores_rr200, image_scores_rr800)
-# 
-# image_scores <- bind_rows(image_scores_lg, image_scores_rr) %>% 
-#   mutate(plotNumber = str_split_i(image, '_', 1) %>% 
-#            as.numeric(), 
-#          image_id = str_remove(image, '-05_00.jpg')) %>% 
-#   left_join(ne_field_idx, join_by(plotNumber)) 
+image_scores_lg200 <- read_csv('data/manual/20260318_ScoresSorghum_LFGT.csv') %>%
+  filter(project=='UNL')
+image_scores_lg800 <- read_csv('data/manual/scores800_LFGT.csv')
+image_scores_lg <- bind_rows(image_scores_lg200, image_scores_lg800)
+
+image_scores_rr200 <- read_csv('data/manual/20260319_ScoresSorghum_RRR.csv') %>%
+  filter(project=='UNL')
+image_scores_rr800 <- read_csv('data/manual/scores800_RRR.csv')
+image_scores_rr <- bind_rows(image_scores_rr200, image_scores_rr800)
+
+image_scores <- bind_rows(image_scores_lg, image_scores_rr) %>%
+  mutate(plotNumber = str_split_i(image, '_', 1) %>%
+           as.numeric(),
+         image_id = str_remove(image, '-05_00.jpg')) %>%
+  left_join(ne_field_idx, join_by(plotNumber))
 # write_csv(image_scores, 'data/manual/all_image_scores.csv')
 
-image_scores <- read_csv('data/manual/all_image_scores.csv')
+# image_scores <- read_csv('data/manual/all_image_scores.csv')
 sap135_scores_rr <- read_csv('data/manual/20260520_RRR_1.csv') %>% 
   filter(project=='sap135images')
 sap135_scores_lg <- read_excel('data/manual/20260518_SAP135_scores.xlsx') %>% 
   mutate(timestamp = as_datetime(timestamp))
 sap135_scores <- bind_rows(sap135_scores_lg, sap135_scores_rr) %>% 
-  mutate(genotype = 'PI576385')
+  mutate(genotype = 'PI576385', 
+         image_id = basename(image) %>% 
+         str_split_remove_i(fixed('-'), 4))
 image_scores <- bind_rows(image_scores, sap135_scores)
+write_csv(image_scores, 'data/manual/all_image_scores.csv')
 
 image_scores <- image_scores %>%
   mutate(genotype = str_remove_all(genotype, ' ')) %>%
@@ -118,6 +121,8 @@ image_scores <- image_scores %>%
   filter(!is.na(genotype_markers)) %>%
   select(!c(genotype)) %>% 
   rename(genotype = genotype_markers)
+
+
 
 interrater_image_scores <- image_scores %>%
   pivot_wider(id_cols = c(project, image, plotNumber, image_id, range, row, experiment, block, genotype),
