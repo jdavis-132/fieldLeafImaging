@@ -193,7 +193,7 @@ score_plot_summary <- human_vi_scores %>%
 model_specs07 <- read_csv('data/rf_model_specs_20260507.csv')
 model_specs07 <- mutate(model_specs07, predictiveAbility = -1)
 
-pctd_model_df <- read_csv(str_c('output/rf_20260507/', model_specs07$model[22], '_', model_specs07$label[22], '_', model_specs07$predictor_prefix[22], '_predictions_rf.csv'))
+pctd_model_df <- read_csv(str_c('data/rf/', model_specs07$model[22], '_', model_specs07$label[22], '_', model_specs07$predictor_prefix[22], '_predictions_rf.csv'))
 spearman_r2 <- cor(pctd_model_df[['label']], pctd_model_df[['predicted']], use = 'complete.obs', method = 'spearman')^2
 pctd_pred <- ggplot(pctd_model_df, aes(label, predicted)) + 
   geom_point(color = paletteer_d("ggsci::default_gsea", 4)[4], alpha = 0.5) + 
@@ -220,7 +220,7 @@ model_specs <- mutate(model_specs, predictiveAbility = -1)
 model_specs <- model_specs[40:52, ]
 for(i in 1:nrow(model_specs))
 {
-  df <- read_csv(str_c('output/rf_20260524/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
+  df <- read_csv(str_c('data/rf/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
   model_specs$predictiveAbility[i] = getRFPredictability(df, 
                                                          model_descriptor = str_c(model_specs$model[i], model_specs$label[i], model_specs$predictor_prefix[i], sep = ':'))
   
@@ -246,7 +246,7 @@ predictability_bars_pc <- ggplot(model_specs, aes(model, predictiveAbility, fill
 predictability_bars_pc
 ggsave(filename = 'figures/supplemental/predictability_bars_100PCs.png', plot = predictability_bars_pc, width = 3.3, height = 1.85, units = 'in', dpi = 1e3, bg = 'transparent')
 
-fi_human_features <- read_csv('output/rf_20260524/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
+fi_human_features <- read_csv('data/rf/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
@@ -254,9 +254,9 @@ fi_human_features <- read_csv('output/rf_20260524/sam3_human_scores_embedding_fe
   mutate(feature = as.numeric(feature)) %>% 
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
-write_csv(fi_human_features, 'data/rf_feature_importances_sam3_human_scores.csv')
+write_csv(fi_human_features, 'data/rf/feature_importances_sam3_human_scores.csv')
 
-fi_pctd_features <- read_csv('output/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
+fi_pctd_features <- read_csv('data/rf/sam3_pctd_crops_embedding_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
@@ -264,7 +264,7 @@ fi_pctd_features <- read_csv('output/sam3_rs_embedding_pctd_senesced_removed_fea
   mutate(feature = as.numeric(feature)) %>% 
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
-write_csv(fi_pctd_features, )
+write_csv(fi_pctd_features, 'data/rf/feature_importances_sam3_percentUnhealthy.csv')
 
 high_fi <- fi_human_features[1:47, ]
 

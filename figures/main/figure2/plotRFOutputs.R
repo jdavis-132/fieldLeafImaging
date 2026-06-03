@@ -24,7 +24,7 @@ model_specs <- mutate(model_specs, predictiveAbility = -1)
 model_specs <- model_specs[1:13, ]
 for(i in 1:nrow(model_specs))
 {
-  df <- read_csv(str_c('output/rf_20260524/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
+  df <- read_csv(str_c('data/rf/', model_specs$model[i], '_', model_specs$label[i], '_', model_specs$predictor_prefix[i], '_predictions_rf.csv'))
   model_specs$predictiveAbility[i] = getRFPredictability(df, 
                                                          model_descriptor = str_c(model_specs$model[i], model_specs$label[i], model_specs$predictor_prefix[i], sep = ':'))
   
@@ -65,7 +65,7 @@ rf_predictability <- ggplot(sam3_rf_predictions_rs, aes(label, predicted)) +
   theme_use
 rf_predictability
 
-fi_pctd_features <- read_csv('output/rf_20260524/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
+fi_pctd_features <- read_csv('data/rf/sam3_human_scores_embedding_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
