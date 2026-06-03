@@ -84,34 +84,36 @@ vp.plot <- ggplot(pctd_vp, aes(label, pctVar, fill = grp)) +
   labs(title = 'ExG')
 vp.plot
 
-image_scores_lg200 <- read_csv('data/manual/20260318_ScoresSorghum_LFGT.csv') %>%
-  filter(project=='UNL')
-image_scores_lg800 <- read_csv('data/manual/scores800_LFGT.csv')
-image_scores_lg <- bind_rows(image_scores_lg200, image_scores_lg800)
-
-image_scores_rr200 <- read_csv('data/manual/20260319_ScoresSorghum_RRR.csv') %>%
-  filter(project=='UNL')
-image_scores_rr800 <- read_csv('data/manual/scores800_RRR.csv')
-image_scores_rr <- bind_rows(image_scores_rr200, image_scores_rr800)
-
-image_scores <- bind_rows(image_scores_lg, image_scores_rr) %>%
-  mutate(plotNumber = str_split_i(image, '_', 1) %>%
-           as.numeric(),
-         image_id = str_remove(image, '-05_00.jpg')) %>%
-  left_join(ne_field_idx, join_by(plotNumber))
+# image_scores_lg200 <- read_csv('data/manual/20260318_ScoresSorghum_LFGT.csv') %>%
+#   filter(project=='UNL')
+# image_scores_lg800 <- read_csv('data/manual/scores800_LFGT.csv')
+# image_scores_lg <- bind_rows(image_scores_lg200, image_scores_lg800)
+# 
+# image_scores_rr200 <- read_csv('data/manual/20260319_ScoresSorghum_RRR.csv') %>%
+#   filter(project=='UNL')
+# image_scores_rr800 <- read_csv('data/manual/scores800_RRR.csv')
+# image_scores_rr <- bind_rows(image_scores_rr200, image_scores_rr800)
+# 
+# image_scores <- bind_rows(image_scores_lg, image_scores_rr) %>%
+#   mutate(plotNumber = str_split_i(image, '_', 1) %>%
+#            as.numeric(),
+#          image_id = str_remove(image, '-05_00.jpg')) %>%
+#   left_join(ne_field_idx, join_by(plotNumber))
+# # write_csv(image_scores, 'data/manual/all_image_scores.csv')
+# 
+# # image_scores <- read_csv('data/manual/all_image_scores.csv')
+# sap135_scores_rr <- read_csv('data/manual/20260520_RRR_1.csv') %>% 
+#   filter(project=='sap135images')
+# sap135_scores_lg <- read_excel('data/manual/20260518_SAP135_scores.xlsx') %>% 
+#   mutate(timestamp = as_datetime(timestamp))
+# sap135_scores <- bind_rows(sap135_scores_lg, sap135_scores_rr) %>% 
+#   mutate(genotype = 'PI576385', 
+#          image_id = basename(image) %>% 
+#          str_split_remove_i(fixed('-'), 4))
+# image_scores <- bind_rows(image_scores, sap135_scores)
 # write_csv(image_scores, 'data/manual/all_image_scores.csv')
 
-# image_scores <- read_csv('data/manual/all_image_scores.csv')
-sap135_scores_rr <- read_csv('data/manual/20260520_RRR_1.csv') %>% 
-  filter(project=='sap135images')
-sap135_scores_lg <- read_excel('data/manual/20260518_SAP135_scores.xlsx') %>% 
-  mutate(timestamp = as_datetime(timestamp))
-sap135_scores <- bind_rows(sap135_scores_lg, sap135_scores_rr) %>% 
-  mutate(genotype = 'PI576385', 
-         image_id = basename(image) %>% 
-         str_split_remove_i(fixed('-'), 4))
-image_scores <- bind_rows(image_scores, sap135_scores)
-write_csv(image_scores, 'data/manual/all_image_scores.csv')
+image_scores <- read_csv('data/manual/all_image_scores.csv')
 
 image_scores <- image_scores %>%
   mutate(genotype = str_remove_all(genotype, ' ')) %>%
@@ -252,8 +254,9 @@ fi_human_features <- read_csv('output/rf_20260524/sam3_human_scores_embedding_fe
   mutate(feature = as.numeric(feature)) %>% 
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
+write_csv(fi_human_features, 'data/rf_feature_importances_sam3_human_scores.csv')
 
-fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
+fi_pctd_features <- read_csv('output/sam3_rs_embedding_pctd_senesced_removed_feature_importances_rf.csv') %>% 
   pivot_longer(cols = everything(), names_to = 'feature', values_to = 'fi') %>% 
   group_by(feature) %>%
   summarise(avg_fi = mean(fi, na.rm = TRUE)) %>% 
@@ -261,6 +264,7 @@ fi_pctd_features <- read_csv('output/rf/sam3_rs_embedding_pctd_senesced_removed_
   mutate(feature = as.numeric(feature)) %>% 
   mutate(stat = case_when(feature < 1024 ~ 'mean', .default = 'std'), 
          embedding_num = case_when(feature > 1023 ~ feature - 1024, .default = feature))
+write_csv(fi_pctd_features, )
 
 high_fi <- fi_human_features[1:47, ]
 
@@ -390,7 +394,7 @@ max(high_fi_vp$h, na.rm = TRUE)
 low_fi_vp <- filter(embeddings_vp_ne, !(responseVar %in% high_fi_features)) %>% 
   arrange(desc(h))
 
-low_fi_highH <- embeddings_vp_ne$responseVar[1:10]
+low_fi_highH <- low_fi_vp$responseVar[1:10]
 
 rmip_pctd <- read_csv('output/farmcpu_20260515/pctd_farmcpu_hits.csv') %>% 
   mutate(embedding = 'pctd') %>% 
@@ -474,112 +478,6 @@ image_scores_markers <- image_scores %>%
                            .x=='0|0' ~ '0/0',
                            .default = .x)))
 
-for (m in markers)
-{
-  formula <- str_c('score ~ `', m, '`')
-  specs_formula <- as.formula(str_c('pairwise ~ `', m, '`'))
-  model <- lm(formula(formula), data = image_scores_markers)
-  emm <- emmeans(model, specs = specs_formula)
-  print(str_c('Score Contrasts: ', m))
-  print(emm$contrasts)
-}
-
-features_test <- filter(rmip, RMIP > 0.2) 
-blues_unl <- read_csv('output/sam3_rs_intercept_blues.csv') %>% 
-  mutate(location = 'UNL')
-blues_fvsu <- read_csv('output/sam3_fvsu_blues.csv') %>% 
-  mutate(location = 'FVSU')
-blues_aamu <- read_csv('output/sam3_aamu_blues.csv') %>% 
-  mutate(location = 'AAMU')
-blues <- bind_rows(blues_unl, blues_fvsu, blues_aamu) %>%
-  filter(!genotype %in% c('Border', 'Check', 'Fill', 'Mixed')) %>% 
-  left_join(vcf_sig, join_by(genotype)) %>% 
-  mutate(across(all_of(markers), ~case_when(.x %in% c('0/1', '1/0', './.', '.', '0|1') ~ NA,
-                                            .x=='1|1' ~ '1/1',
-                                            .x=='0|0' ~ '0/0',
-                                            .default = .x))) %>%
-  select(c(location, all_of(c(markers, unique(features_test$embedding)))))
-
-results <- blues %>% 
-  pivot_longer(!c(location, starts_with('embedding')), 
-               values_to = 'allele', 
-               names_to = 'marker') %>% 
-  filter(!is.na(allele)) %>% 
-  filter(location!='UNL') %>%
-  group_by(marker, , location) %>%
-  summarise(
-    p_value  = t.test(phenotype ~ genotype)$p.value,
-    mean_00  = mean(phenotype[genotype == '0/0']),
-    mean_11  = mean(phenotype[genotype == '1/1']),
-    diff     = mean_11 - mean_00,
-    n_00     = sum(genotype == 0),
-    n_11     = sum(genotype == 2),
-    .groups  = "drop"
-  )
-
-# Correct across ALL 111 tests
-results <- results %>%
-  mutate(
-    p_BH         = p.adjust(p_value, method = "BH"),
-    p_bonferroni = p.adjust(p_value, method = "bonferroni")
-  )
-
-# Significant results
-sig <- results %>% filter(p_BH < 0.05)
-
-
-blues_summary <- blues %>% 
-  pivot_longer(!c(location, starts_with('embedding')), 
-               values_to = 'allele', 
-               names_to = 'marker') %>% 
-  filter(!is.na(allele)) %>% 
-  group_by(marker, allele, location) %>% 
-  summarise(across(all_of(unique(features_test$embedding)),
-                   .fns = c(mean = ~mean(.x),
-                            se = ~sd(.x)/sqrt(n()), 
-                            n = ~n()))) %>%
-  mutate(location = factor(location, levels = c('UNL', 'AAMU', 'FVSU')))
-
-for(i in 1:nrow(features_test))
-{
-  f <- features_test$embedding[i]
-  m <- features_test$SNP[i]
-  mean <- str_c(f, '_mean')
-  se <- str_c(f, '_se')
-  df <- filter(blues_summary, marker==m)
-  plot <- ggplot(df, aes(location, .data[[mean]], fill = allele)) + 
-    geom_col(position = position_dodge(width = 0.9)) + 
-    scale_x_discrete(name = 'Location', 
-                     label = c('NE', 'AL', 'GA'), 
-                     expand = c(0, 0)) + 
-    scale_y_continuous(name = f, 
-                       expand = c(0, 0)) + 
-    scale_fill_manual(name = m, 
-                      values = paletteer_d('RColorBrewer::Paired', 10)[1:2]) + 
-    theme_use
-  print(plot)
-}
-
-same_dir <- c(1:2, 4:7, 9, 11, 13, 15:16, 22, 24, 30, 33:34, 37)
-switch_dir <- c(3, 8, 10, 12, 14, 17:21, 23, 25:29, 31:32, 35:36)
-
-chr9_586_stability <- ggplot(filter(blues_summary, marker=='9:62154422:T:C'), 
-                             aes(location, embedding_mean_586_mean, fill = allele)) + 
-  geom_col(position = position_dodge(width = 0.9)) + 
-  geom_errorbar(aes(ymin = embedding_mean_586_mean - embedding_mean_586_se, 
-                    ymax = embedding_mean_586_mean + embedding_mean_586_se), 
-                position = position_dodge(width = 0.9), 
-                width = 0.25) +
-  scale_x_discrete(name = 'Location', 
-                   label = c('NE', 'AL', 'GA'), 
-                   expand = c(0, 0)) + 
-  scale_y_continuous(name = '586 (Mean)', 
-                     expand = c(0, 0)) + 
-  scale_fill_manual(name = m, 
-                    values = paletteer_d('RColorBrewer::Paired', 10)[1:2]) + 
-  theme_use
-chr9_586_stability
-
 r_gene_donors <- c('PI576385', 'PI656070', 'PI533869')
 r_gene_donor_names <- c('SAP-135', 'SC 748-5', 'SC 283')
 r_gene_names <- c('ARG4', 'LRR2', 'ARG1')
@@ -641,3 +539,76 @@ manhattan <- ggplot(chr6_peaks, aes(POS, -log10(MLM_P), color = embedding)) +
   annotate('rect', xmin = 58582313, xmax = 58584616, ymin = 5.5, ymax = 8.5, color = 'purple', fill = 'transparent')
   # scale_x_continuous(limits = c(5.5e7, 6.5e7))
 manhattan
+
+image_scores_al_ga <- read_csv('data/manual/image_scores_al_ga.csv')
+image_scores_aamu <- filter(image_scores_al_ga, location=='AAMU') %>% 
+  left_join(idx_aamu, join_by(plotNumber), relationship = 'many-to-one')
+image_scores_fvsu <- filter(image_scores_al_ga, location=='FVSU') %>% 
+  left_join(idx_fvsu, join_by(plotNumber))
+image_scores_ne <- read_csv('data/manual/all_image_scores.csv') %>% 
+  mutate(location = 'UNL')
+
+image_scores_all <- bind_rows(image_scores_aamu, image_scores_fvsu, image_scores_ne) %>% 
+  mutate(genotype = str_remove_all(genotype, ' ')) %>%
+  left_join(genotype_alignment, join_by(genotype==genotype_idx)) %>%
+  mutate(genotype_markers = case_when(is.na(genotype_markers) ~ genotype,
+                                      .default = genotype_markers)) %>% 
+  filter(!is.na(genotype_markers)) %>%
+  select(!c(genotype)) %>% 
+  rename(genotype = genotype_markers) %>%
+  inner_join(vcf_sig, join_by(genotype)) %>% 
+  mutate(across(all_of(markers), 
+                ~case_when(.x %in% c('0/1', '1/0', './.', '.', '0|1') ~ NA, 
+                           .x=='1|1' ~ '1/1', 
+                           .x=='0|0' ~ '0/0',
+                           .default = .x)))
+
+genotypes_intersect <- intersect(blues_unl$genotype, blues_aamu$genotype)
+genotypes_intersect <- intersect(genotypes_intersect, blues_fvsu$genotype)  
+
+image_scores_nec <- filter(image_scores_all, location=='UNL' & genotype %in% genotypes_intersect) %>% 
+  mutate(location = 'UNL-SAP')
+
+image_scores_all <- bind_rows(image_scores_all, image_scores_nec)
+
+df_bar <- image_scores_all %>% 
+  ungroup() %>% 
+  filter(!is.na(score)) %>%
+  select(score, location, all_of(markers)) %>% 
+  pivot_longer(!c(score, location), 
+               values_to = 'allele', 
+               names_to = 'marker') %>% 
+  filter(!is.na(allele)) %>% 
+  group_by(marker, allele, location) %>%
+  summarise(mean = mean(score), 
+            se = sd(score)/sqrt(n()), 
+            n = n()) %>% 
+  mutate(location = factor(location, levels = c('UNL', 'UNL-SAP', 'AAMU', 'FVSU')))
+
+wilcox.test(score ~ `6:58584404:G:A`, data = image_scores_all, subset = location=='UNL')
+wilcox.test(score ~ `6:58584404:G:A`, data = image_scores_all, subset = location=='UNL-SAP')
+wilcox.test(score ~ `6:58584404:G:A`, data = image_scores_all, subset = location=='AAMU')
+wilcox.test(score ~ `6:58584404:G:A`, data = image_scores_all, subset = location=='FVSU')
+
+pLocusScoreBar <-  df_bar %>% 
+  filter(marker == "6:58584404:G:A") %>%
+  ggplot(aes(location, mean, fill = allele)) + 
+  geom_col(position = position_dodge(width = 0.9)) + 
+  geom_errorbar(aes(ymin  = mean - se, ymax = mean + se), position = position_dodge(width = 0.9), width = 0.25) + 
+  annotate(geom = 'text', 
+           x = c('UNL', 'UNL-SAP', 'AAMU', 'FVSU'), 
+           y = rep(2.9, 4),
+           label = c('*', '', '****', '****')) +
+  scale_x_discrete(name = NULL, 
+                   expand = c(0, 0), 
+                   label = c('NE', 'NE-C', 'AL', 'GA')) + 
+  scale_y_continuous(name = 'Human Ordinal Score', 
+                     expand = c(0, 0), 
+                     limits = c(0, 3)) +
+  scale_fill_manual(name = 'Chr6:58584404', 
+                    values = paletteer_d('MoMAColors::Althoff')[1:3], 
+                    label = c('G', 'A')) + 
+  theme_use + 
+  theme(axis.text.x = element_text(angle = 90))
+pLocusScoreBar
+ggsave('figures/supplemental/pLocusScores.png', height = 2.75, width = 3.25, dpi = 1e3, bg = NULL)

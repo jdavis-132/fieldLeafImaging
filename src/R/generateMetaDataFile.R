@@ -23,7 +23,11 @@ idx_ga <- read_csv('data/fvsu2025/fvsu_field_index.csv')
 pctd_ne <- read_csv('data/ne2025/pctd_all.csv') %>% 
   mutate(image_id = str_split_remove_i(image_path, fixed('-'), 4)) %>% 
   rename(percentUnhealthy = pctd) %>% 
-  select(image_id, percentUnhealthy)
+  select(image_id, percentUnhealthy) %>% 
+  # segmentation failed for me but somehow still have pctd? remove these pctd values
+  filter(!(image_id %in% c('1030_LeafPhotoA_2025-09-08 10_05_24.735', 
+                           '1009_LeafPhotoA_2025-09-08 09_39_52.913',
+                           '2771_LeafPhotoA_2025-09-09 15_51_03.374')))
 
 pctd_al <- read_csv('data/aamu2025/pctd_all.csv') %>% 
   mutate(image_id = str_split_remove_i(image_path, fixed('-'), 4)) %>% 
@@ -42,22 +46,37 @@ segmentation_ga <- read_csv('data/processed/fvsu2025/segmentation_methods.csv') 
   select(image_id, segmentation_method) %>%
   distinct()
 
+images_keep_ne <- read_csv('data/ne2025/images_keep_all.csv', col_names = c('image_id'))
+images_keep_al <- read_csv('data/aamu2025/image_ids_keep.txt', col_names = c('image_id'))
+images_keep_ga <- read_csv('data/fvsu2025/image_ids_keep.txt', col_names = c('image_id'))
+
 images_ne <- filter(all_raw_images, location=='NE') %>% 
   left_join(idx_ne, join_by(plotNumber)) %>% 
   mutate(block = as.numeric(rep)) %>% 
   select(!rep) %>% 
   left_join(pctd_ne, join_by(image_id)) %>% 
-  left_join(segmentation_ne, join_by(image_path))
+  left_join(segmentation_ne, join_by(image_path)) %>% 
+  mutate(excluded = case_when(!(image_id %in% images_keep_ne$image_id) 
+                              & segmentation_method!='Failed' ~ TRUE, .default = FALSE)) %>% 
+  # initially failed but segmented on second run
+  mutate(segmentation_method = case_when(image_id %in% c('1635_LeafPhotoA_2025-09-09 10_20_03.665',
+                                                         '2602_LeafPhotoA_2025-09-09 10_55_46.992') ~ 'SAM3',
+                                         .default = segmentation_method))
+
 images_al <- filter(all_raw_images, location=='AL') %>% 
   left_join(idx_al, join_by(plotNumber)) %>% 
   left_join(pctd_al, join_by(image_id)) %>%
-  left_join(segmentation_al, join_by(image_path))
+  left_join(segmentation_al, join_by(image_path)) %>% 
+  mutate(excluded = case_when(!(image_id %in% images_keep_al$image_id) 
+                              & segmentation_method!='Failed' ~ TRUE, .default = FALSE))
 images_ga <- filter(all_raw_images, location=='GA') %>% 
   left_join(idx_ga, join_by(plotNumber)) %>% 
   mutate(block = as.numeric(rep)) %>% 
   select(!c(S.No, rep)) %>% 
   left_join(pctd_ga, join_by(image_id)) %>% 
-  left_join(segmentation_ga, join_by(image_id))
+  left_join(segmentation_ga, join_by(image_id)) %>% 
+  mutate(excluded = case_when(!(image_id %in% images_keep_ga$image_id) 
+                              & segmentation_method!='Failed' ~ TRUE, .default = FALSE))
 
 genotype_alignment <- read_tsv('data/genotype_conversion_table.tsv', col_names = c('genotype_idx', 'genotype_markers'))
 
@@ -96,10 +115,23 @@ al_ga_human_scores <- read_csv('data/manual/image_scores_al_ga.csv') %>%
 human_scores <- bind_rows(ne_human_scores, al_ga_human_scores)
 
 metadata <- images %>% 
-  left_join(human_scores, join_by(image_id, location)) %>% 
-  mutate(excluded = is.na(percentUnhealthy))
+  left_join(human_scores, join_by(image_id, location))
 write_csv(metadata, 'data/image_metadata.csv')
 
-# figure out why this does not have length 567 as calculated for variables.tex last week
-# 5 - need to fix images that initially failed but DO have masks
-image_ids_exclude <- metadata$image_id[which(metadata$excluded)]
+blues_ne <- read_csv('output/sam3_blues.csv') %>% 
+  mutate(location = 'NE')
+blues_al <- read_csv('output/sam3_aamu_blues.csv') %>% 
+  mutate(location = 'AL')
+blues_ga <- read_csv('output/sam3_fvsu_blues.csv') %>% 
+  mutate(location = 'GA')
+blues_pctd <- read_csv('output/pctd_blues.csv') %>% 
+  rename(percentUnhealthy = pctd)
+blues_scores <- read_csv('output/human_scores_blues.csv') %>% 
+  rename(human_score = score)
+
+blues <- blues_ne %>% 
+  left_join(blues_pctd, join_by(genotype)) %>% 
+  left_join(blues_scores, join_by(genotype)) %>% 
+  bind_rows(blues_al, blues_ga) %>% 
+  relocate(location, genotype, human_score, percentUnhealthy)
+write_csv(blues, 'data/blues_all.csv')

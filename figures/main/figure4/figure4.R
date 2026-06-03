@@ -167,32 +167,32 @@ near_proposed_gene <- tibble(Marker = c("2:7435977:G:A", "3:59834531:G:A", "7:53
                                            'Zhang et al. (2025)', 'Zhang et al. (2025)', 'Zhang et al. (2025)'))
 write_csv(near_proposed_gene, 'figures/supplemental/hits_near_proposed_Rgenes.csv')
 
-near_other_gene_candidate <- tibble(Marker = c("2:62930055:T:A", '7:530343:A:G', "9:60446599:A:G", '9:60457109:G:A'),
-                                    Gene = c("Sobic.002G224300", "Sobic.007G163500", 'Sobic.009G224200', 'Sobic.009G224200'), 
-                                    Embedding = c('437 (Mean)', '594 (SD)', '514 (Mean)', '901 (Mean)'), 
-                                    Reference = c('Ahn et al. (2019)', 'Adeyanju et al. (2015)', 'Adeyanju et al. (2015)', 'Adeyanju et al. (2015)'))
+near_other_gene_candidate <- tibble(Marker = c("2:62930055:T:A", "9:60446599:A:G", '9:60457109:G:A'),
+                                    Gene = c("Sobic.002G224300", 'Sobic.009G224200', 'Sobic.009G224200'), 
+                                    Embedding = c('437 (Mean)', '514 (Mean)', '901 (Mean)'), 
+                                    Reference = c('Ahn et al. (2019)', 'Adeyanju et al. (2015)', 'Adeyanju et al. (2015)'))
 
 new_candidate_genes <- tibble(Marker = c("1:65370402:C:G", '1:65371952:C:T', '1:80217753:T:C', '2:2510254:C:T', '2:2512849:C:T', '2:12830566:T:C', '3:12740766:G:C',
-                                         '3:64823118:A:G', '3:80000107:C:T', '4:59295200:G:A', '6:46829866:C:T', '7:4717906:C:G', rep('8:2354126:C:T', 5), '9:62298007:G:A', 
+                                         '3:64823118:A:G', '3:80000107:C:T', '6:46829866:C:T', '7:4717906:C:G', '9:62298007:G:A', 
                                          '2:2510254:C:T', '2:2512849:C:T', '9:62154422:T:C'),
                               Gene = c('Sobic.001G323801', 'Sobic.001G323801', 'Sobic.001G489600', 'Sobic.002G029100', 'Sobic.002G029100', 'Sobic.002G106700', 
-                                       'Sobic.003G133800', 'Sobic.003G248100', 'Sobic.003G435900', 'Sobic.004G219700', 'Sobic.006G086900', 'Sobic.007G045800',
-                                       'Sobic.008G026900', 'Sobic.008G027033', 'Sobic.008G027166', 'Sobic.008G027300', 'Sobic.008G027400', 'Sobic.009G249100', 
+                                       'Sobic.003G133800', 'Sobic.003G248100', 'Sobic.003G435900', 'Sobic.006G086900', 'Sobic.007G045800',
+                                       'Sobic.009G249100', 
                                        'Sobic.002G027700', 'Sobic.002G027700', 'Sobic.009G249100'), 
+                              Embedding = c('139 (Mean), 901 (Mean)', '129 (Mean)', '976 (SD)', '637 (Mean)', '930 (SD)', '968 (SD)', '968 (Mean)', '129 (Mean)', 
+                                            '968 (SD)', '129 (Mean)', '132 (SD)', '129 (Mean)', '637 (Mean)', '930 (SD)',
+                                            '793 (SD), 586 (Mean)'),
                               Annotation = c('PLANT INVERTASE_PECTIN METHYLESTERASE INHIBITOR SUPERFAMILY PROTEIN', 
                                              'PLANT INVERTASE_PECTIN METHYLESTERASE INHIBITOR SUPERFAMILY PROTEIN', 
                                              'AVRRPT-CLEAVAGE DOMAIN-CONTAINING PROTEIN', 'PROTEIN ESSENTIAL FOR POTEXVIRUS ACCUMULATION 1',
                                              'PROTEIN ESSENTIAL FOR POTEXVIRUS ACCUMULATION 1', 'weakly similar to Putative wall-associated serine/threonine kinase', 
                                              ' LEUCINE-RICH REPEAT-CONTAINING N-TERMINAL PLANT-TYPE DOMAIN-CONTAINING PROTEIN', 
                                              'similar to Mitogen-activated protein kinase 8', 'DISEASE RESISTANCE PROTEIN RFL1-RELATED', 
-                                             'similar to Putative wall-associated kinase 2', 'PECTINESTERASE_PECTINESTERASE INHIBITOR 51-RELATED', 
-                                             'RECEPTOR-LIKE SERINE_THREONINE-PROTEIN KINASE', ' Leucine-rich repeat domain superfamily', 
-                                             'Leucine-rich repeat, cysteine-containing subtype', 'NB-ARC DOMAIN-CONTAINING PROTEIN', 'Leucine-rich repeat domain superfamily',
-                                             'NB-ARC // Leucine-rich repeat', 'similar to Disease resistance protein-like', 'RECEPTOR-LIKE PROTEIN 57; AT ortho has LRR', 
-                                             'RECEPTOR-LIKE PROTEIN 57; AT ortho has LRR', 'similar to Disease resistance protein-like'), 
-                              Embedding = c('139 (Mean), 901 (Mean)', '129 (Mean)', '976 (SD)', '637 (Mean)', '930 (SD)', '968 (SD)', '968 (Mean)', '129 (Mean)', 
-                                            '968 (SD)', 'Percent Unhealthy Tissue', '129 (Mean)', '132 (SD)', rep('Human Scores', 5), '129 (Mean)', '637 (Mean)', '930 (SD)',
-                                            '793 (SD), 586 (Mean)'))
+                                             'PECTINESTERASE_PECTINESTERASE INHIBITOR 51-RELATED', 
+                                             'RECEPTOR-LIKE SERINE_THREONINE-PROTEIN KINASE', 'similar to Disease resistance protein-like', 'RECEPTOR-LIKE PROTEIN 57', 
+                                             'RECEPTOR-LIKE PROTEIN 57', 'similar to Disease resistance protein-like'))
+write_csv(new_candidate_genes, 'figures/supplemental/new_candidate_genes.csv')
+
 
 known_candidates <- c('embedding_std_839', 'embedding_mean_792', 'embedding_mean_984', 'embedding_std_793', 'embedding_mean_119', 'embedding_std_383', 
                       'embedding_std_983', 'embedding_mean_37', 'embedding_mean_734')
@@ -273,11 +273,11 @@ genotype_alignment <- read_tsv('data/genotype_conversion_table.tsv', col_names =
 #   mutate(project = 'FVSU') %>%
 #   mutate(timestamp= as.character(timestamp))
 # 
-# idx_aamu <- read_csv('data/aamu2025/aamu_field_index.csv')
-# idx_fvsu <- read_csv('data/fvsu2025/fvsu_field_index.csv') %>%
-#   mutate(block = str_split_i(rep, fixed(' '), 2) %>%
-#            as.numeric()) %>%
-#   select(!c(S.No, rep))
+idx_aamu <- read_csv('data/aamu2025/aamu_field_index.csv')
+idx_fvsu <- read_csv('data/fvsu2025/fvsu_field_index.csv') %>%
+  mutate(block = str_split_i(rep, fixed(' '), 2) %>%
+           as.numeric()) %>%
+  select(!c(S.No, rep))
 # 
 # image_scores <- bind_rows(image_scores_lg30, image_scores_rr30, image_scores_lg_186_aamu, image_scores_lg_192_fvsu, image_scores_rr_1, image_scores_rr_2) %>%
 #   mutate(plotNumber = str_split_i(image, '_', 1) %>%
@@ -307,23 +307,31 @@ image_scores <- bind_rows(image_scores_aamu, image_scores_fvsu) %>%
                            .default = .x)))
 scores_sig_aamu <- c()
 scores_sig_fvsu <- c()
+sig_marker_effects <- tibble()
 for(m in markers)
 {
   test_formula <- as.formula(str_c('score ~ `', m, '`'))
   print(m)
   aamu_test <- wilcox.test(test_formula, data = image_scores, subset = location=='AAMU')
   fvsu_test <- wilcox.test(test_formula, data = image_scores, subset = location=='FVSU')
-  if(fvsu_test$p.value < 0.05/(length(markers)*2))
+  tmp <- tibble(marker = m, 
+                pval_al = aamu_test$p.value,
+                pval_ga = fvsu_test$p.value)
+  sig_marker_effects <- bind_rows(sig_marker_effects, tmp)
+  if(fvsu_test$p.value < 0.05)
   {
     print(str_c('FVSU: ', fvsu_test$p.value))
     scores_sig_fvsu <- c(scores_sig_fvsu, m)
   }
-  if(aamu_test$p.value < 0.05/(length(markers)*2))
+  if(aamu_test$p.value < 0.05)
   {
     print(str_c('AAMU: ', aamu_test$p.value))
     scores_sig_aamu <- c(scores_sig_aamu, m)
   }
 }
+sig_marker_effects <- sig_marker_effects %>% 
+  mutate(across(contains('pval'), ~format(.x, digits = 3, format = 'g')))
+write_csv(sig_marker_effects, 'figures/supplemental/marker_effects_scores.csv')
 marker_score_effect_highlight <- c("1:65370402:C:G", "2:62930055:T:A", "3:64823118:A:G", "7:4717906:C:G", "9:60035864:A:T")
 
 df_bar <- image_scores %>% 
@@ -383,7 +391,19 @@ stability_wide <- stability %>%
               names_from = location, 
               values_from = product) %>% 
     rowwise() %>%
-    mutate(external_sum = sum(c(AAMU, FVSU)))
+    mutate(external_sum = sum(c(AAMU, FVSU)), 
+           embedding_name = str_c(str_split_i(embedding, '_', 3), ' (', 
+                             str_replace(str_to_title(str_split_i(embedding, '_', 2)), 'Std', 'SD'), ')'))
+
+stability_wide %>%
+  arrange(desc(external_sum)) %>% 
+  select(marker, embedding_name, UNL, `UNL-SAP`, AAMU, FVSU, external_sum) %>% 
+  rename(NE = UNL, 
+         `NE-C` = `UNL-SAP`, 
+         AL = AAMU,
+         GA = FVSU, 
+         `External Environments Stable` = external_sum) %>% 
+  write_csv('figures/supplemental/association_external_environment_stability.csv')
 
 marker_highlight <- intersect(marker_score_effect_highlight, stability_wide$marker[which(stability_wide$external_sum > 0)])
 select_features <- c('embedding_std_793', 'embedding_std_839', 'embedding_std_383', 'embedding_std_983', 'embedding_mean_37', 'embedding_mean_734', 
@@ -444,7 +464,7 @@ score_bars <- df_bar %>%
   scale_y_continuous(name = 'Human Ordinal Score', 
                      expand = c(0, 0)) +
   scale_fill_manual(name = NULL, 
-                    values = paletteer_d('MoMAColors::Althoff')[2:3], 
+                    values = paletteer_d('MoMAColors::Althoff')[1:3], 
                     label = c('REF', 'ALT')) + 
   theme_use + 
   theme(axis.text.x = element_text(angle = 90))
