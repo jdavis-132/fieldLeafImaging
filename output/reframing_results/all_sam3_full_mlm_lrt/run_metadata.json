@@ -1,0 +1,21 @@
+{
+  "run_started": "2026-06-06 16:07:38",
+  "n_samples": 895,
+  "n_markers": 4920234,
+  "n_traits": 2048,
+  "chunk_size": 32,
+  "top_k": 500,
+  "n_pcs": 5,
+  "effective_markers": 3169884,
+  "effective_bonferroni_threshold": 1.5773447861183564e-08,
+  "genotype_load_seconds": 0.10664762393571436,
+  "effective_tests_seconds": 3.8974767099134624,
+  "pc_seconds": 17.34096820303239,
+  "loco_kinship_seconds": 12.679986096918583,
+  "lrt_refinement": true,
+  "lrt_solver": "GEMMA",
+  "lrt_batch_size": 2048,
+  "cpu": 1,
+  "max_line": 1000,
+  "run_finished": "2026-06-07 00:19:15"
+}

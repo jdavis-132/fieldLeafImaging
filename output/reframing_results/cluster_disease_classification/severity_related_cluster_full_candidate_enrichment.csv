@@ -1,0 +1,13 @@
+candidate_set,unit_set,candidate_definition,severity_related_with_candidate,severity_related_without_candidate,not_severity_related_with_candidate,not_severity_related_without_candidate,severity_related_candidate_fraction,not_severity_related_candidate_fraction,fisher_exact_or,fisher_exact_p_greater
+full_anthracnose,all_cluster_labels_including_singletons,has_validated,22,41,19,130,0.3492063492063492,0.12751677852348994,3.6713735558408214,0.00029811164045186764
+full_anthracnose,all_cluster_labels_including_singletons,has_validated_or_proposed,30,33,38,111,0.47619047619047616,0.2550335570469799,2.6555023923444976,0.0015787064424179775
+full_anthracnose,multi_trait_clusters_only,has_validated,19,14,15,39,0.5757575757575758,0.2777777777777778,3.5285714285714285,0.005638022216705811
+full_anthracnose,multi_trait_clusters_only,has_validated_or_proposed,24,9,28,26,0.7272727272727273,0.5185185185185185,2.4761904761904763,0.04337941909780591
+full_anthracnose,singletons_only,has_validated,3,27,4,91,0.1,0.042105263157894736,2.5277777777777777,0.21837285115122645
+full_anthracnose,singletons_only,has_validated_or_proposed,6,24,10,85,0.2,0.10526315789473684,2.125,0.14908725737405817
+full_all_disease,all_cluster_labels_including_singletons,has_validated,22,41,19,130,0.3492063492063492,0.12751677852348994,3.6713735558408214,0.00029811164045186764
+full_all_disease,all_cluster_labels_including_singletons,has_validated_or_proposed,32,31,43,106,0.5079365079365079,0.28859060402684567,2.54463615903976,0.002069006488718068
+full_all_disease,multi_trait_clusters_only,has_validated,19,14,15,39,0.5757575757575758,0.2777777777777778,3.5285714285714285,0.005638022216705811
+full_all_disease,multi_trait_clusters_only,has_validated_or_proposed,25,8,30,24,0.7575757575757576,0.5555555555555556,2.5,0.04643069087045338
+full_all_disease,singletons_only,has_validated,3,27,4,91,0.1,0.042105263157894736,2.5277777777777777,0.21837285115122645
+full_all_disease,singletons_only,has_validated_or_proposed,7,23,13,82,0.23333333333333334,0.1368421052631579,1.919732441471572,0.16490432352521955

@@ -1,0 +1,14 @@
+Embedding-vs-severity / module structure summary
+NE rows: 961; human_score nonmissing: 598; ExG percentUnhealthy nonmissing: 961.
+Human score vs ExG percentUnhealthy Spearman r=0.651 (r2=0.423, n=598).
+Selected high-FI SAM3 traits: 47 (27 mean, 20 std).
+Selected traits vs human score: median |Spearman r|=0.566, median r2=0.320, max r2=0.447.
+Selected traits vs ExG: median |Spearman r|=0.605, median r2=0.367, max r2=0.442.
+Linear human+ExG severity model explaining each selected trait: median R2=0.417; median residual fraction=0.583.
+Selected-trait pairwise |Spearman r|: median=0.586, max=0.852; 302/1081 pairs <0.5 and 30/1081 pairs <0.3.
+Hierarchical modules at approximate |r|>=0.6: 8 modules, 1 singletons, largest module size 20.
+Selected-trait PCA: PC1 explains 0.611; 12 PCs for 90% variance; effective dimension 2.6.
+All SAM3 mean+std PCA: PC1 explains 0.203; 48 PCs for 90% variance; effective dimension 11.0.
+All SAM3 features vs human score: median |r|=0.226, max |r|=0.669; 113 features >=0.5.
+All SAM3 features vs ExG: median |r|=0.239, max |r|=0.665; 164 features >=0.5.
+Interpretation: the high-FI embeddings are strongly disease-relevant but not reducible to human/ExG severity; much of their variance remains after conventional severity, and correlation/module structure indicates multiple partially overlapping axes rather than one severity scale.
