@@ -210,7 +210,29 @@ pctd_pred <- ggplot(pctd_model_df, aes(label, predicted)) +
   labs(x = 'Area Below ExG Threshold', y = 'Predicted Area Below ExG Threshold') + 
   theme_use
 pctd_pred
+
+pctd_pred_annotated <- ggplot(pctd_model_df, aes(label, predicted)) + 
+  geom_point(color = paletteer_d("ggsci::default_gsea", 4)[4], alpha = 0.5) + 
+  geom_abline(intercept = 0, slope = 1, color = 'black') + 
+  geom_smooth(method = 'lm', linetype = 'dashed', se = FALSE, color = 'black') + 
+  annotate('text', 25, 100, label = "'Spearman '~rho^2==0.56", parse = TRUE, 
+           size = 9, size.unit = 'pt') +
+  annotate('rect', xmin = 70, xmax = 100, ymin = 0, ymax = 25, color = 'black', fill = 'transparent') +
+  annotate('rect', xmin = 56, xmax = 64, ymin = 36.572, ymax = 43, color = 'blue', fill = 'transparent') +  
+  scale_x_continuous(expand = c(0, 0), 
+                     limits = c(0, 105),
+                     labels = ~str_c(.x, '%')) + 
+  scale_y_continuous(expand = c(0, 0), 
+                     limits = c(0, 105),
+                     labels = ~str_c(.x, '%')) + 
+  labs(x = 'Area Below ExG Threshold', y = 'Predicted Area Below ExG Threshold') + 
+  theme_use
+pctd_pred_annotated
 ggsave('figures/supplemental/exg_RF_all.png', plot = pctd_pred, dpi = 1e3, bg = 'transparent', width = 3.72, height = 3.86)
+
+high_disease <- filter(pctd_model_df, between(label, 50, 65) & predicted > 35) %>% 
+  mutate(error = label - predicted) %>%
+  arrange(desc(label), error)
 
 high_error <- filter(pctd_model_df, 
                      label > 70 & predicted < 25)
