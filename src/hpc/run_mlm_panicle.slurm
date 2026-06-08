@@ -11,6 +11,9 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jdavis132@huskers.unl.edu
 
+#BEFORE RUNNING: 
+# Generate vcf files by running src/hpc/00-filterVCF.slurm.
+
 cd /work/schnablelab/jdavis132/fieldLeafImaging
 ml anaconda
 conda activate GWAS

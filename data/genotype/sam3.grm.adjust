@@ -1,0 +1,6 @@
+Datafile data/sam3.bed
+Power -1.000000
+Num_Preds 167175
+Sum_Weights 167175.0000
+Denominator 331589.2229
+Off_Diag_Variance 1.496201e-02

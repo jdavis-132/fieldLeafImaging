@@ -1,5 +1,6 @@
 """
 Test SAM3 model on leaf images
+Dependencies: Download weights according to instructions at https://github.com/facebookresearch/sam3/tree/main
 """
 import torch
 from transformers import Sam3Processor, Sam3Model

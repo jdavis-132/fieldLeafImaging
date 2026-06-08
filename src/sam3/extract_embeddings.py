@@ -10,6 +10,7 @@ This script:
 
 Author: Generated for fieldLeafImaging project
 Date: 2025
+Dependencies: Download weights according to instructions at https://github.com/facebookresearch/sam3/tree/main
 """
 
 import torch

@@ -1,5 +1,6 @@
 """
 Batch leaf segmentation using SAM3 model
+Dependencies: Download weights according to instructions at https://github.com/facebookresearch/sam3/tree/main
 """
 import os
 import torch

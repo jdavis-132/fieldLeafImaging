@@ -10,6 +10,9 @@
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=jdavis132@huskers.unl.edu
 
+#BEFORE RUNNING: 
+# Generate vcf files by running src/hpc/00-filterVCF.slurm.
+
 cd /work/schnablelab/jdavis132/fieldLeafImaging
 ml anaconda
 conda activate GWAS
@@ -18,8 +21,7 @@ USE_OPENMP=1
 phenotype_files=data/phenotype_files_farmcpu.txt
 p=$(sed -n "${SLURM_ARRAY_TASK_ID}p;${SLURM_ARRAY_TASK_ID}q" ${phenotype_files})
 g=human_scores.vcf
-#p=scores_828_blues_score_average_${SLURM_ARRAY_TASK_ID}.csv
-
+#g=sam3.vcf
 cd /scratch/
 mkdir paniclefarmcpu_${SLURM_ARRAY_TASK_ID}
 cd paniclefarmcpu_${SLURM_ARRAY_TASK_ID}
