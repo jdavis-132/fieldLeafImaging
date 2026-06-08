@@ -40,7 +40,7 @@ set -x  # Print commands (for debugging)
 #Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding_mean -sam3_mean -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/sam3_mean_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding_std -sam3_std -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/sam3_std_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/sam3_quantgen.Rout 2>&1
-#Rscript src/R/LV_quantGen.R -manual -data/ne2025/pctd_all.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -pctd -pctd -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/pctd_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -manual -data/ne2025/pctd_all.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -pctd -pctd -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/pctd_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -output/dinov2_features.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -feature -dinov2 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/dinov2_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_143328_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae1 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/ae1_quantgen.Rout 2>&1
 #Rscript src/R/LV_quantGen.R -image -models/autoencoder_20260107_214228_standard_lr0.001_bs32_l1/embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -latent_dim -ae3 -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_all.csv > logs/ae3_quantgen.Rout 2>&1
@@ -67,7 +67,13 @@ set -x  # Print commands (for debugging)
 
 #Rscript src/R/LV_quantGen.R -image -data/ne2025/phenotype_data_NEBRASKA_FINAL_GWAS.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -leaf_width_corrected_px -leaf_width -0.01 -data/ne2025/genotype_alignment_reseq.csv -data/ne2025/images_keep_senesced_removed.csv >logs/leaf_width_quantgen.Rout 2>&1
 
-#FVSU + AAMU embeddings with intercept added back
+#SAM3 embeddings with intercept added back
 Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_fvsu.csv -data/fvsu2025/fvsu_field_index.csv -embedding -sam3_fvsu -0.01 -data/genotype_conversion_table.tsv -data/fvsu2025/image_ids_keep.txt >logs/fvsu_quantgen.Rout 2>&1
 Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings_aamu.csv -data/aamu2025/aamu_field_index.csv -embedding -sam3_aamu -0.01 -data/genotype_conversion_table.tsv -data/aamu2025/image_ids_keep.txt >logs/aamu_quantgen.Rout 2>&1
-#Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3  -0.01 -data/genotype_conversion_table.tsv -data/ne2025/images_keep_all.csv > logs/sam3_intercept_quantgen.Rout 2>&1
+Rscript src/R/LV_quantGen.R -image -output/sam3_embeddings.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -embedding -sam3  -0.01 -data/genotype_conversion_table.tsv -data/ne2025/images_keep_all.csv > logs/sam3_intercept_quantgen.Rout 2>&1
+
+# Human scores 
+Rscript src/R/LV_quantGen.R -image -data/manual/all_image_scores_path.csv -data/ne2025/SbDiv_ne2025_fieldindex.csv -score -human_scores -0.01 -data/genotype_conversion_table.tsv -data/ne2025/images_keep_all.csv >logs/human_scores_quantgen.Rout 2>&1
+
+
+
