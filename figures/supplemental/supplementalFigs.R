@@ -228,6 +228,8 @@ pctd_pred_annotated <- ggplot(pctd_model_df, aes(label, predicted)) +
   labs(x = 'Area Below ExG Threshold', y = 'Predicted Area Below ExG Threshold') + 
   theme_use
 pctd_pred_annotated
+ggsave('figures/supplemental/exg_RF_annotated.png', plot = pctd_pred_annotated, dpi = 1e3, bg = 'transparent')
+
 ggsave('figures/supplemental/exg_RF_all.png', plot = pctd_pred, dpi = 1e3, bg = 'transparent', width = 3.72, height = 3.86)
 
 high_disease <- filter(pctd_model_df, between(label, 50, 65) & predicted > 35) %>% 
@@ -392,7 +394,6 @@ hist
 #                                                 '~ (1|range) + (1|row) + (1|genotype)'))
 # }
 # write_csv(embeddings_vp_ne, 'output/embedding_vp_ne.csv')
-
 embeddings_vp_ne <- read_csv('output/embedding_vp_ne.csv')
 
 vp.plot <- ggplot(embeddings_vp_ne, aes(label, pctVar, fill = grp)) +
@@ -417,6 +418,34 @@ low_fi_vp <- filter(embeddings_vp_ne, !(responseVar %in% high_fi_features)) %>%
   arrange(desc(h))
 
 low_fi_highH <- low_fi_vp$responseVar[1:10]
+
+embeddings_scores_ne <- read_csv('output/sam3_human_scores_rf.csv')
+
+cor_df <- tibble()
+for(lv in colnames(embeddings_scores_ne)[str_detect(colnames(embeddings_scores_ne), 'embedding')])
+{
+  tmp <- tibble(embedding = lv, 
+                cor = cor(embeddings_scores_ne[lv], embeddings_scores_ne$mean_score, 
+                          use = 'complete.obs', method = 'spearman')[,1])
+  cor_df <- bind_rows(cor_df, tmp)
+}
+
+hist.cor <- ggplot(cor_df, aes(cor)) + 
+  geom_histogram() + 
+  theme_use
+hist.cor
+
+cor_h <- embeddings_vp_ne %>% 
+  select(responseVar, h) %>% 
+  left_join(cor_df, join_by(responseVar==embedding))
+
+cor_h_scatter <- ggplot(cor_h, aes(cor, h)) +
+  geom_point(alpha = 0.25, color = paletteer_d("ggsci::default_gsea", 1)[1]) + 
+  labs(x = expression("Spearman "~ rho ~'(Embedding & Mean Human Score)'),
+       y = 'Broad-sense Heritability') +
+  theme_use
+cor_h_scatter
+ggsave('figures/supplemental/cor_h_scatter.png', plot = cor_h_scatter, dpi = 1e3)
 
 rmip_pctd <- read_csv('output/farmcpu_20260515/pctd_farmcpu_hits.csv') %>% 
   mutate(embedding = 'pctd') %>% 
