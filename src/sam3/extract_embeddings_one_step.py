@@ -33,13 +33,6 @@ from src.autoencoder import segment_leaf  # noqa: E402
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff"}
 
 
-def default_model_path() -> str:
-    local = Path("/home/james/leaf_imaging/SAM3")
-    if local.exists():
-        return str(local)
-    return "src/sam3"
-
-
 def find_images(pattern: str) -> list[Path]:
     paths = [
         Path(p)
@@ -154,6 +147,11 @@ class OneStepSam3Extractor:
             print("CUDA requested but unavailable; falling back to CPU")
             device = "cpu"
         self.device = device
+        if not os.path.exists(model_path):
+            raise FileNotFoundError(
+                f"Model directory not found: {model_path}\n"
+                f"Expected at: {os.path.abspath(model_path)}"
+            )
         self.processor = Sam3Processor.from_pretrained(model_path)
         self.model = Sam3Model.from_pretrained(model_path)
         if dtype == "float16" and self.device == "cuda":
@@ -312,8 +310,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "-m",
         "--model",
-        default=default_model_path(),
-        help="SAM3 model directory",
+        default="src/sam3",
+        help="Path to SAM3 model directory (default: src/sam3)",
     )
     parser.add_argument(
         "-d",
