@@ -1,0 +1,7 @@
+set,category,n_genes,n_genes_mapped_to_annotation,n_genes_hit_by_full_mlm_locus,n_hit_loci
+anthracnose_only,proposed_anthracnose,151,145,38,26
+anthracnose_only,validated_anthracnose,31,30,14,13
+anthracnose_plus_other_diseases,proposed_anthracnose,151,145,38,26
+anthracnose_plus_other_diseases,proposed_other_disease,47,44,18,15
+anthracnose_plus_other_diseases,validated_anthracnose,31,30,14,13
+anthracnose_plus_other_diseases,validated_other_disease,8,8,0,0

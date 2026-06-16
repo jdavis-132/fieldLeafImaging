@@ -1,0 +1,5 @@
+abs_spearman_cut,n_modules,n_singletons,largest_module_size,median_module_size,module_sizes_desc
+0.7,22,13,13,1.0,13;4;4;3;2;2;2;2;2;1;1;1;1;1;1;1;1;1;1;1;1;1
+0.6,8,1,20,3.5,20;11;4;4;3;2;2;1
+0.5,2,0,40,23.5,40;7
+0.4,1,0,47,47.0,47
