@@ -7,9 +7,28 @@ from sklearn.metrics import mean_squared_error
 from sklearn import preprocessing
 import sys
 from pathlib import Path
+import re
 sys.path.insert(0, str(Path(__file__).parent))
 from modelClass import base, RF
 import argparse
+
+
+def predictor_columns(data, predictor_prefix, excluded_columns):
+    """Select predictor columns without matching response/metadata substrings."""
+    prefixes = predictor_prefix.split('|')
+    columns = []
+    for col in data.columns:
+        if col in excluded_columns:
+            continue
+        for prefix in prefixes:
+            if prefix in {"mean", "std"}:
+                if re.fullmatch(rf"{re.escape(prefix)}_[0-9]+", col):
+                    columns.append(col)
+                    break
+            elif col.startswith(prefix):
+                columns.append(col)
+                break
+    return columns
 
 parser = argparse.ArgumentParser(description="Train random forest with k-fold grouped cross validation")
 parser.add_argument("input_data", type=Path, help="Path to csv with values to predict and predictor values")
@@ -32,7 +51,9 @@ predictions_ds = pd.DataFrame()
 importance_ds = pd.DataFrame()
 
 kfold = GroupKFold(n_splits = k)
-features = data[[col for col in data.columns if args.predictor_prefix in col]]
+excluded_columns = {args.label, args.group, args.image_id_col}
+feature_cols = predictor_columns(data, args.predictor_prefix, excluded_columns)
+features = data[feature_cols]
 scores = data[args.label]
 genotype = data[args.group]
 i = 1
@@ -43,10 +64,10 @@ for train_idx, test_idx in splits:
     train_ds = data.iloc[train_idx]
     test_ds = data.iloc[test_idx]
         
-    train_features = train_ds[[col for col in data.columns if args.predictor_prefix in col]]
+    train_features = train_ds[feature_cols]
     train_response = train_ds[args.label]
         
-    test_features = test_ds[[col for col in data.columns if args.predictor_prefix in col]]
+    test_features = test_ds[feature_cols]
     test_images = test_ds[args.image_id_col]    
     test_features = preprocessing.StandardScaler().fit_transform(test_features)
     test_response = test_ds[args.label]
